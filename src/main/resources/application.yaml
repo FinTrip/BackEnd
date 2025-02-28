@@ -6,10 +6,13 @@ spring:
   datasource:
     url: jdbc:sqlserver://localhost:1433;databaseName=FinTrip;encrypt=false
     username: sa
-    password: 123456
+    password: sa
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
   jpa:
     database-platform: org.hibernate.dialect.SQLServer2012Dialect
     hibernate:
-      ddl-auto : update
-    show-sql : true
+      ddl-auto: update
+    show-sql: true
+
+jwt:
+  secret-key: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
