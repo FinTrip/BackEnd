@@ -1,15 +1,12 @@
 package org.example.backend.controller;
 
-import org.example.backend.dto.ApiResponse;
+import org.example.backend.dto.*;
 import org.example.backend.service.AuthService;
-import org.example.backend.dto.LoginRequest;
-import org.example.backend.dto.LoginResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.example.backend.dto.RegisterRequest;
 import org.example.backend.exception.AppException;
 import org.example.backend.exception.ErrorCode;
 
@@ -49,6 +46,39 @@ public class AuthController {
             throw e;
         } catch (Exception e) {
             log.error("Registration failed", e);
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+    }
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ApiResponse<String>> forgotPassword(@RequestBody ForgotPasswordRequest request) {
+        try {
+            authService.forgotPassword(request);
+            ApiResponse<String> response = new ApiResponse<>();
+            response.setCode(200);
+            response.setMessage("Password reset email sent.");
+            response.setResult(null); // No specific result to return
+            return ResponseEntity.ok(response);
+        } catch (AppException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Forgot password failed", e);
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<ApiResponse<String>> resetPassword(@RequestBody ResetPasswordRequest request) {
+        try {
+            authService.resetPassword(request);
+            ApiResponse<String> response = new ApiResponse<>();
+            response.setCode(200);
+            response.setMessage("Password reset successfully.");
+            response.setResult(null); // No specific result to return
+            return ResponseEntity.ok(response);
+        } catch (AppException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Reset password failed", e);
             throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
     }
