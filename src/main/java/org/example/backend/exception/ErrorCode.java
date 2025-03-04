@@ -24,7 +24,19 @@ public enum ErrorCode {
     ROLE_NOT_FOUND(HttpStatus.NOT_FOUND, "Role not found"),
     INVALID_ROLE(HttpStatus.BAD_REQUEST, "Invalid role"),
     INSUFFICIENT_PERMISSIONS(HttpStatus.FORBIDDEN, "Insufficient permissions"),
-    
+    // Forgot Password related errors
+    FORGOT_PASSWORD_USER_NOT_FOUND(HttpStatus.NOT_FOUND, "Không tìm thấy người dùng với email này"),
+    FORGOT_PASSWORD_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "Token đặt lại mật khẩu đã hết hạn"),
+    FORGOT_PASSWORD_INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "Token đặt lại mật khẩu không hợp lệ"),
+    FORGOT_PASSWORD_EMAIL_NOT_SENT(HttpStatus.INTERNAL_SERVER_ERROR, "Không thể gửi email đặt lại mật khẩu"),
+
+    // Reset Password related errors
+    RESET_PASSWORD_INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "Token không hợp lệ hoặc đã hết hạn"),
+    RESET_PASSWORD_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "Token đã hết hạn"),
+    RESET_PASSWORD_PASSWORD_MISMATCH(HttpStatus.BAD_REQUEST, "Mật khẩu mới và xác nhận không khớp"),
+    RESET_PASSWORD_INVALID_PASSWORD_FORMAT(HttpStatus.BAD_REQUEST, "Mật khẩu mới không đáp ứng yêu cầu định dạng"),
+    RESET_PASSWORD_SAME_AS_OLD(HttpStatus.BAD_REQUEST, "Mật khẩu mới không được trùng với mật khẩu cũ"),
+
     // General errors
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error"),
     DATABASE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Database error occurred"),
