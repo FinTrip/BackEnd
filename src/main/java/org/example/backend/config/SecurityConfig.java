@@ -8,8 +8,6 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import lombok.RequiredArgsConstructor;
 
 // src/main/java/org/example/backend/config/SecurityConfig.java
 @Configuration
@@ -22,7 +20,6 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/api/users/**").authenticated()
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> session

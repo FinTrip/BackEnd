@@ -29,6 +29,10 @@ public enum ErrorCode {
     FORGOT_PASSWORD_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "Token đặt lại mật khẩu đã hết hạn"),
     FORGOT_PASSWORD_INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "Token đặt lại mật khẩu không hợp lệ"),
     FORGOT_PASSWORD_EMAIL_NOT_SENT(HttpStatus.INTERNAL_SERVER_ERROR, "Không thể gửi email đặt lại mật khẩu"),
+    //Question input
+    LOCATION_NOT_FOUND(HttpStatus.NOT_FOUND, "Không tìm thấy địa điểm"),
+    DESTINATION_NOT_FOUND(HttpStatus.NOT_FOUND, "Không tìm thấy điểm đến phù hợp với ngân sách"),
+    BUDGET_TOO_LOW(HttpStatus.BAD_REQUEST, "Ngân sách không đủ cho các địa điểm đã chọn"),
 
     // Reset Password related errors
     RESET_PASSWORD_INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "Token không hợp lệ hoặc đã hết hạn"),

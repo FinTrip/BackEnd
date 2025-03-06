@@ -5,6 +5,7 @@ import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Data
 @Entity
@@ -22,6 +23,7 @@ public class Destination {
 
     @ManyToOne
     @JoinColumn(name = "location_id")
+    @JsonIgnore
     private Location location;
 
     @Column(name = "avg_cost", precision = 10, scale = 2)
@@ -36,10 +38,12 @@ public class Destination {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    @OneToMany(mappedBy = "destination")
+    @OneToMany(mappedBy = "destination", fetch = FetchType.LAZY)
+    @JsonIgnore
     private List<TravelPlan> travelPlans;
 
-    @OneToMany(mappedBy = "destination")
+    @OneToMany(mappedBy = "destination", fetch = FetchType.LAZY)
+    @JsonIgnore
     private List<Recommendation> recommendations;
 
     @PrePersist
