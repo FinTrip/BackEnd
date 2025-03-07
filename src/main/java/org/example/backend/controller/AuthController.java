@@ -82,4 +82,30 @@ public class AuthController {
             throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
     }
+    @PutMapping("/me")
+    public ResponseEntity<ApiResponse<String>> updateUser(
+            @RequestHeader("Authorization") String token,
+            @RequestBody UpdateRequest request) {
+        try {
+            log.info("Start update user process with token");
+            
+            // Remove "Bearer " prefix if present
+            if (token != null && token.startsWith("Bearer ")) {
+                token = token.substring(7);
+            }
+            
+            authService.updateUserByToken(token, request);
+            
+            ApiResponse<String> response = new ApiResponse<>();
+            response.setCode(200);
+            response.setMessage("User updated successfully");
+            return ResponseEntity.ok(response);
+        } catch (AppException e) {
+            log.error("Update user failed with AppException: {}", e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            log.error("Update user failed with unexpected error: ", e);
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+    }
 }

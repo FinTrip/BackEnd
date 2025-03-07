@@ -2,12 +2,16 @@ package org.example.backend.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.ToString;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
 @Entity
 @Table(name = "roles")
+@ToString(exclude = {"users"})
+
 public class Role {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
