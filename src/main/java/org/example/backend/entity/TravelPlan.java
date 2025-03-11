@@ -42,9 +42,6 @@ public class TravelPlan {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    @OneToMany(mappedBy = "plan", fetch = FetchType.LAZY)
-    @JsonIgnore
-    private List<Activity> activities;
 
     @OneToMany(mappedBy = "plan", fetch = FetchType.LAZY)
     @JsonIgnore
