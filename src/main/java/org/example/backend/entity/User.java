@@ -48,8 +48,6 @@ public class User {
     @OneToMany(mappedBy = "user")
     private List<Recommendation> recommendations;
 
-    @OneToMany(mappedBy = "user")
-    private List<IssueReport> issueReports;
 
     public enum UserStatus {
         active, inactive, banned

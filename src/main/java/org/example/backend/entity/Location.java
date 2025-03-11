@@ -37,9 +37,8 @@ public class Location {
     @JsonIgnore
     private List<Destination> destinations;
 
-    @OneToMany(mappedBy = "location", fetch = FetchType.LAZY)
-    @JsonIgnore
-    private List<Weather> weatherList;
+
+
 
     @PrePersist
     protected void onCreate() {
