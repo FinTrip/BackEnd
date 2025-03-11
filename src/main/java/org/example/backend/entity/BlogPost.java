@@ -17,6 +17,10 @@ public class BlogPost {
     @JoinColumn(name = "user_id")
     private User user;
 
+    @ManyToOne
+    @JoinColumn(name = "travel_plan_id")
+    private TravelPlan travelPlan;
+
     @Column(length = 255)
     private String title;
 
@@ -24,6 +28,7 @@ public class BlogPost {
     private String content;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "status")
     private PostStatus status;
 
     @Column(name = "created_at")
@@ -35,6 +40,7 @@ public class BlogPost {
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
     }
 
     @PreUpdate
