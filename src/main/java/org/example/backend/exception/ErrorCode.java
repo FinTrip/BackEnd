@@ -48,12 +48,18 @@ public enum ErrorCode {
     VALIDATION_ERROR(HttpStatus.BAD_REQUEST, "Validation error"),
     BAD_REQUEST(HttpStatus.BAD_REQUEST, "Bad request"),
     FORBIDDEN(HttpStatus.FORBIDDEN, "Access forbidden"),
+
+    //Travel
+    TRAVELPLAN_NOT_FOUND(HttpStatus.NOT_FOUND, "Travel plan not found"),
     
     // API related errors
     API_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "API error occurred"),
     SERVICE_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "Service is currently unavailable"),
     TOO_MANY_REQUESTS(HttpStatus.TOO_MANY_REQUESTS, "Too many requests"),
-    REQUEST_TIMEOUT(HttpStatus.REQUEST_TIMEOUT, "Request timeout");
+    REQUEST_TIMEOUT(HttpStatus.REQUEST_TIMEOUT, "Request timeout"),
+    POST_NOT_FOUND(HttpStatus.NOT_FOUND, "Không tìm thấy bài viết"),
+    TRAVEL_PLAN_NOT_FOUND(HttpStatus.NOT_FOUND, "Không tìm thấy kế hoạch du lịch"),
+    INVALID_REQUEST(HttpStatus.BAD_REQUEST, "Yêu cầu không hợp lệ");
 
     private final HttpStatus status;
     private final String message;
