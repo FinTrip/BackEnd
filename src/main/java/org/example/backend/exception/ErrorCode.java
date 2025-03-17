@@ -19,7 +19,8 @@ public enum ErrorCode {
     PASSWORD_MISMATCH(HttpStatus.BAD_REQUEST, "Password does not match"),
     INVALID_PASSWORD_FORMAT(HttpStatus.BAD_REQUEST, "Invalid password format"),
     INVALID_EMAIL_FORMAT(HttpStatus.BAD_REQUEST, "Invalid email format"),
-    
+    UNAUTHORIZED_USER(HttpStatus.UNAUTHORIZED, "Unauthorized User access"),
+
     // Role related errors
     ROLE_NOT_FOUND(HttpStatus.NOT_FOUND, "Role not found"),
     INVALID_ROLE(HttpStatus.BAD_REQUEST, "Invalid role"),
@@ -59,7 +60,9 @@ public enum ErrorCode {
     REQUEST_TIMEOUT(HttpStatus.REQUEST_TIMEOUT, "Request timeout"),
     POST_NOT_FOUND(HttpStatus.NOT_FOUND, "Không tìm thấy bài viết"),
     TRAVEL_PLAN_NOT_FOUND(HttpStatus.NOT_FOUND, "Không tìm thấy kế hoạch du lịch"),
-    INVALID_REQUEST(HttpStatus.BAD_REQUEST, "Yêu cầu không hợp lệ");
+    INVALID_REQUEST(HttpStatus.BAD_REQUEST, "Yêu cầu không hợp lệ"),
+
+    COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "Comment not found");
 
     private final HttpStatus status;
     private final String message;
@@ -68,4 +71,6 @@ public enum ErrorCode {
         this.status = status;
         this.message = message;
     }
-} 
+
+
+}

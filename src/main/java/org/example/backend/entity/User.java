@@ -3,12 +3,18 @@ package org.example.backend.entity;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.ToString;
+import lombok.Builder;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
 @Entity
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Table(name = "users")
 @ToString(exclude = {"role", "travelGroups", "travelPlans", "notifications", "recommendations", "issueReports"})
 public class User {

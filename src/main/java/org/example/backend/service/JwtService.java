@@ -5,6 +5,9 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.example.backend.entity.User;
+import org.example.backend.repository.UserRepository;
+import org.example.backend.exception.AppException;
+import org.example.backend.exception.ErrorCode;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -18,6 +21,12 @@ public class JwtService {
     @Value("${jwt.secret-key}")
     private String secretKey;
     
+    private final UserRepository userRepository;
+
+    public JwtService(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
+
     public String generateToken(User user) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("email", user.getEmail());
@@ -31,7 +40,7 @@ public class JwtService {
                 .compact();
     }
 
-    public String extractUsername(String token) {
+    public User extractUser(String token) {
         try {
             Claims claims = Jwts.parserBuilder()
                     .setSigningKey(getSignInKey())
@@ -39,9 +48,11 @@ public class JwtService {
                     .parseClaimsJws(token)
                     .getBody();
             
-            return claims.getSubject();
+            String email = claims.getSubject();
+            return userRepository.findByEmail(email)
+                    .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
         } catch (Exception e) {
-            return null;
+            throw new AppException(ErrorCode.INVALID_TOKEN);
         }
     }
 

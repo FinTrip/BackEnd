@@ -1,7 +1,6 @@
 package org.example.backend.service;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.example.backend.dto.BlogPostRequest;
 import org.example.backend.entity.BlogPost;
 import org.example.backend.entity.TravelPlan;
@@ -17,7 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 @Service
-@Slf4j
+
 @RequiredArgsConstructor
 public class BlogService {
     private final BlogPostRepository blogPostRepository;
