@@ -33,86 +33,62 @@ public class AuthService {
 
     public LoginResponse login(LoginRequest request) {
         try {
-            log.info("Start login process for email: {}", request.getEmail());
-            validateLoginRequest(request);
-
-            log.info("Finding user with email: {}", request.getEmail());
+            log.info("Attempting login for user: {}", request.getEmail());
+            
             User user = userRepository.findByEmail(request.getEmail())
-                    .orElseThrow(() -> new AppException(
-                        ErrorCode.USER_NOT_FOUND, 
-                        "User not found with email: " + request.getEmail()
-                    ));
+                .orElseThrow(() -> new AppException(ErrorCode.INVALID_CREDENTIALS));
+            
             log.info("Found user: {}", user);
-                
             log.info("Checking password for user: {}", user.getEmail());
+            
+            // So sánh mật khẩu đã mã hóa
             if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
                 log.error("Invalid password for user: {}", user.getEmail());
                 throw new AppException(ErrorCode.INVALID_CREDENTIALS);
             }
 
-            log.info("Password matched for user: {}", user.getEmail());
+            // Tạo token nếu mật khẩu đúng
+            String token = jwtService.generateToken(user);
             
-            // Kiểm tra role
-            if (user.getRole() == null) {
-                log.error("User role is null for user: {}", user.getEmail());
-                throw new AppException(ErrorCode.RESOURCE_NOT_FOUND, "User role not found");
-            }
-            log.info("User role: {}", user.getRole().getRoleName());
+            log.info("Login successful for user: {}", user.getEmail());
+            return LoginResponse.builder()
+                    .token(token)
+                    .email(user.getEmail())
+                    .fullName(user.getFullName())
+                    .role(user.getRole() != null ? user.getRole().getRoleName() : "USER")
+                    .build();
 
-            log.info("Generating token for user: {}", user.getEmail());
-            String token;
-            try {
-                token = jwtService.generateToken(user);
-                log.info("Token generated successfully");
-            } catch (Exception e) {
-                log.error("Failed to generate token: ", e);
-                throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to generate token");
-            }
-            
-            log.info("Building login response for user: {}", user.getEmail());
-            try {
-                return LoginResponse.builder()
-                        .token(token)
-                        .email(user.getEmail())
-                        .fullName(user.getFullName())
-                        .role(user.getRole().getRoleName())
-                        .build();
-            } catch (Exception e) {
-                log.error("Failed to build login response: ", e);
-                throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to build response");
-            }
         } catch (AppException e) {
-            log.error("Login failed with AppException: {}", e.getMessage());
+            log.error("Login failed with AppException: {} ", e.getMessage());
             throw e;
         } catch (Exception e) {
-            log.error("Login failed with unexpected error: ", e);
-            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Unexpected error during login");
+            log.error("Login failed with unexpected error", e);
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
     }
 
     public void register(RegisterRequest request) {
-        validateRegisterRequest(request);
-
+        // Kiểm tra email đã tồn tại
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new AppException(ErrorCode.USER_ALREADY_EXISTS);
         }
 
-        User user = new User();
-        user.setEmail(request.getEmail());
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setFullName(request.getFullName());
-        user.setStatus(User.UserStatus.active);
+        // Mã hóa mật khẩu trước khi lưu
+        String encodedPassword = passwordEncoder.encode(request.getPassword());
 
-        Role userRole = roleRepository.findByRoleName("USER")
-                .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Default role not found"));
-        user.setRole(userRole);
+        // Lấy role mặc định (USER)
+        Role defaultRole = roleRepository.findByRoleName("USER")
+                .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND, "Default role not found"));
 
-        try {
-            userRepository.save(user);
-        } catch (Exception e) {
-            log.error("Registration failed", e);
-            throw new AppException(ErrorCode.DATABASE_ERROR);
-        }
+        User user = User.builder()
+                .email(request.getEmail())
+                .password(encodedPassword)
+                .fullName(request.getFullName())
+                .status(User.UserStatus.active)
+                .role(defaultRole)
+                .build();
+
+        userRepository.save(user);
     }
 
     private void validateLoginRequest(LoginRequest request) {
@@ -293,18 +269,11 @@ public class AuthService {
             }
             
             // Get user from token
-            String email = jwtService.extractUsername(token);
-            if (email == null || email.trim().isEmpty()) {
-                log.error("Invalid token: no email found");
+            User user = jwtService.extractUser(token);
+            if (user == null) {
+                log.error("Invalid token: no user found");
                 throw new AppException(ErrorCode.INVALID_TOKEN, "Invalid token");
             }
-            
-            // Find user by email
-            User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> {
-                    log.error("User not found for email: {}", email);
-                    return new AppException(ErrorCode.USER_NOT_FOUND);
-                });
             log.info("Found user: {}", user.getEmail());
             
             // 2 Update Ten neu co
