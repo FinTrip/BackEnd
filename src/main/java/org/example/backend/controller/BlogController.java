@@ -1,5 +1,6 @@
 package org.example.backend.controller;
 
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.dto.ApiResponse;
@@ -26,11 +27,14 @@ public class BlogController {
 
     @PostMapping("/create")
     public ResponseEntity<ApiResponse<Map<String, Object>>> createPost(
-            @RequestHeader(value = "X-User-Email", required = true) String userEmail,
-            @Valid @RequestBody BlogPostRequest request) {
+            HttpServletRequest request, // Thêm tham số HttpServletRequest
+            @Valid @RequestBody BlogPostRequest requestBody) {
         try {
-            log.info("Creating blog post for user: {}", userEmail);
-            BlogPost post = blogService.createBlogPost(userEmail, request);
+            String userEmail = (String) request.getAttribute("userEmail"); // Lấy email người dùng
+            if (userEmail == null) {
+                throw new AppException(ErrorCode.UNAUTHORIZED_USER);
+            }
+            BlogPost post = blogService.createBlogPost(userEmail, requestBody);
             
             Map<String, Object> response = new HashMap<>();
             response.put("id", post.getId());
