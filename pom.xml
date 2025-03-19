@@ -97,11 +97,7 @@
             <version>1.1.1</version>
         </dependency>
 
-        <dependency>
-            <groupId>com.github.ZEGOCLOUD</groupId>
-            <artifactId>zego_server_assistant</artifactId>
-            <version>2.1.0</version>
-        </dependency>
+
     </dependencies>
 
     <build>

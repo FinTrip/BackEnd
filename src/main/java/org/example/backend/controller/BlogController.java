@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.dto.ApiResponse;
 import org.example.backend.dto.BlogPostRequest;
+import org.example.backend.dto.CommentRequest;
 import org.example.backend.entity.BlogPost;
 import org.example.backend.exception.AppException;
 import org.example.backend.exception.ErrorCode;
@@ -27,14 +28,14 @@ public class BlogController {
 
     @PostMapping("/create")
     public ResponseEntity<ApiResponse<Map<String, Object>>> createPost(
-            HttpServletRequest request, // Thêm tham số HttpServletRequest
-            @Valid @RequestBody BlogPostRequest requestBody) {
+            HttpServletRequest request,
+            @Valid @RequestBody BlogPostRequest blogPostRequest) {
         try {
-            String userEmail = (String) request.getAttribute("userEmail"); // Lấy email người dùng
+            String userEmail = (String) request.getAttribute("userEmail");
             if (userEmail == null) {
                 throw new AppException(ErrorCode.UNAUTHORIZED_USER);
             }
-            BlogPost post = blogService.createBlogPost(userEmail, requestBody);
+            BlogPost post = blogService.createBlogPost(userEmail, blogPostRequest);
             
             Map<String, Object> response = new HashMap<>();
             response.put("id", post.getId());
@@ -72,6 +73,13 @@ public class BlogController {
                     postMap.put("content", post.getContent());
                     postMap.put("authorName", post.getUser().getFullName());
                     postMap.put("createdAt", post.getCreatedAt());
+                    if (post.getTravelPlan() != null) {
+                        Map<String, Object> travelPlanInfo = new HashMap<>();
+                        travelPlanInfo.put("id", post.getTravelPlan().getId());
+                        travelPlanInfo.put("startDate", post.getTravelPlan().getStartDate());
+                        travelPlanInfo.put("endDate", post.getTravelPlan().getEndDate());
+                        postMap.put("travelPlan", travelPlanInfo);
+                    }
                     return postMap;
                 })
                 .collect(Collectors.toList());
@@ -85,8 +93,14 @@ public class BlogController {
 
     @GetMapping("/user")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getUserPosts(
-            @RequestHeader(value = "X-User-Email", required = true) String userEmail) {
+            HttpServletRequest request) {
         try {
+            String userEmail = (String) request.getAttribute("userEmail");
+            if (userEmail == null) {
+                throw new AppException(ErrorCode.UNAUTHORIZED_USER);
+            }
+            log.info("Getting posts for user: {}", userEmail);
+
             List<BlogPost> posts = blogService.getUserPost(userEmail);
             List<Map<String, Object>> response = posts.stream()
                 .map(post -> {
@@ -94,9 +108,14 @@ public class BlogController {
                     postMap.put("id", post.getId());
                     postMap.put("title", post.getTitle());
                     postMap.put("content", post.getContent());
+                    postMap.put("authorName", post.getUser().getFullName());
                     postMap.put("createdAt", post.getCreatedAt());
                     if (post.getTravelPlan() != null) {
-                        postMap.put("travelPlanId", post.getTravelPlan().getId());
+                        Map<String, Object> travelPlanInfo = new HashMap<>();
+                        travelPlanInfo.put("id", post.getTravelPlan().getId());
+                        travelPlanInfo.put("startDate", post.getTravelPlan().getStartDate());
+                        travelPlanInfo.put("endDate", post.getTravelPlan().getEndDate());
+                        postMap.put("travelPlan", travelPlanInfo);
                     }
                     return postMap;
                 })
