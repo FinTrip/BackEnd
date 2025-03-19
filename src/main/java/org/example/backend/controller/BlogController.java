@@ -100,7 +100,7 @@ public class BlogController {
                 throw new AppException(ErrorCode.UNAUTHORIZED_USER);
             }
             log.info("Getting posts for user: {}", userEmail);
-            
+
             List<BlogPost> posts = blogService.getUserPost(userEmail);
             List<Map<String, Object>> response = posts.stream()
                 .map(post -> {

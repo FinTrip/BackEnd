@@ -40,6 +40,7 @@ public class CommentService {
                 .post(post)
                 .user(user)
                 .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
                 .build();
 
         return commentRepository.save(comment);

@@ -49,6 +49,7 @@ public class AuthController {
             throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
     }
+
     @PostMapping("/forgot-password")
     public ResponseEntity<ApiResponse<String>> forgotPassword(@RequestBody ForgotPasswordRequest request) {
         try {
@@ -82,6 +83,7 @@ public class AuthController {
             throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
     }
+
     @PutMapping("/me")
     public ResponseEntity<ApiResponse<String>> updateUser(
             @RequestHeader("Authorization") String token,
