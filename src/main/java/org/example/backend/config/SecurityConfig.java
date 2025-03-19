@@ -36,6 +36,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/trip/**").permitAll()
                 .requestMatchers("/api/blog/**").permitAll()
                 .requestMatchers("/api/comment/**").permitAll()
+                .requestMatchers("/api/messages/**").permitAll()
                 .anyRequest().authenticated()
             .and()
             .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);

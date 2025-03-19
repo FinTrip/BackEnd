@@ -1,5 +1,6 @@
 package org.example.backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.ToString;
@@ -30,6 +31,7 @@ public class Role {
     private LocalDateTime updatedAt;
 
     @OneToMany(mappedBy = "role")
+    @JsonBackReference
     private List<User> users;
 
     @PrePersist

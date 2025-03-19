@@ -1,5 +1,7 @@
 package org.example.backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.ToString;
@@ -43,6 +45,7 @@ public class User {
 
     @ManyToOne
     @JoinColumn(name = "role_id")
+    @JsonManagedReference
     private Role role;
 
     @OneToMany(mappedBy = "user")

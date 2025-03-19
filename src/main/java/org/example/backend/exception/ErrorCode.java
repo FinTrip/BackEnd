@@ -41,7 +41,8 @@ public enum ErrorCode {
     RESET_PASSWORD_PASSWORD_MISMATCH(HttpStatus.BAD_REQUEST, "Mật khẩu mới và xác nhận không khớp"),
     RESET_PASSWORD_INVALID_PASSWORD_FORMAT(HttpStatus.BAD_REQUEST, "Mật khẩu mới không đáp ứng yêu cầu định dạng"),
     RESET_PASSWORD_SAME_AS_OLD(HttpStatus.BAD_REQUEST, "Mật khẩu mới không được trùng với mật khẩu cũ"),
-
+    //Message
+    MESSAGE_NOT_FOUND(HttpStatus.BAD_REQUEST,"Message not found"),
     // General errors
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error"),
     DATABASE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Database error occurred"),

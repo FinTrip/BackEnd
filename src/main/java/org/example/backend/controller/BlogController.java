@@ -73,13 +73,6 @@ public class BlogController {
                     postMap.put("content", post.getContent());
                     postMap.put("authorName", post.getUser().getFullName());
                     postMap.put("createdAt", post.getCreatedAt());
-                    if (post.getTravelPlan() != null) {
-                        Map<String, Object> travelPlanInfo = new HashMap<>();
-                        travelPlanInfo.put("id", post.getTravelPlan().getId());
-                        travelPlanInfo.put("startDate", post.getTravelPlan().getStartDate());
-                        travelPlanInfo.put("endDate", post.getTravelPlan().getEndDate());
-                        postMap.put("travelPlan", travelPlanInfo);
-                    }
                     return postMap;
                 })
                 .collect(Collectors.toList());
@@ -93,29 +86,20 @@ public class BlogController {
 
     @GetMapping("/user")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getUserPosts(
-            HttpServletRequest request) {
+            HttpServletRequest request,
+            @Valid @RequestBody BlogPostRequest blogPostRequest
+            ) {
         try {
-            String userEmail = (String) request.getAttribute("userEmail");
-            if (userEmail == null) {
-                throw new AppException(ErrorCode.UNAUTHORIZED_USER);
-            }
-            log.info("Getting posts for user: {}", userEmail);
-            
-            List<BlogPost> posts = blogService.getUserPost(userEmail);
+            List<BlogPost> posts = blogService.getUserPost("userEmail");
             List<Map<String, Object>> response = posts.stream()
                 .map(post -> {
                     Map<String, Object> postMap = new HashMap<>();
                     postMap.put("id", post.getId());
                     postMap.put("title", post.getTitle());
                     postMap.put("content", post.getContent());
-                    postMap.put("authorName", post.getUser().getFullName());
                     postMap.put("createdAt", post.getCreatedAt());
                     if (post.getTravelPlan() != null) {
-                        Map<String, Object> travelPlanInfo = new HashMap<>();
-                        travelPlanInfo.put("id", post.getTravelPlan().getId());
-                        travelPlanInfo.put("startDate", post.getTravelPlan().getStartDate());
-                        travelPlanInfo.put("endDate", post.getTravelPlan().getEndDate());
-                        postMap.put("travelPlan", travelPlanInfo);
+                        postMap.put("travelPlanId", post.getTravelPlan().getId());
                     }
                     return postMap;
                 })
