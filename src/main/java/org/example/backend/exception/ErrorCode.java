@@ -63,7 +63,16 @@ public enum ErrorCode {
     TRAVEL_PLAN_NOT_FOUND(HttpStatus.NOT_FOUND, "Không tìm thấy kế hoạch du lịch"),
     INVALID_REQUEST(HttpStatus.BAD_REQUEST, "Yêu cầu không hợp lệ"),
 
-    COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "Comment not found");
+    //Api Room 
+    TOKEN_GENERATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "Token generation failed"),
+    API_CALL_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "API call failed"),
+    ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "Room not found"),
+    USER_NOT_AUTHORIZED(HttpStatus.UNAUTHORIZED, "User not authorized"),
+    INVALID_ROOM_ID(HttpStatus.BAD_REQUEST, "Invalid room ID"),
+    USER_ALREADY_IN_ROOM(HttpStatus.CONFLICT, "User already in room"),
+    ROOM_CREATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "Room creation failed"),
+    ROOM_JOIN_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "Room join failed"),
+    COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND,"Comment Not Found");
 
     private final HttpStatus status;
     private final String message;

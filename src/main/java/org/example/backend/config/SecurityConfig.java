@@ -32,6 +32,7 @@ public class SecurityConfig {
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             .and()
             .authorizeRequests()
+                .requestMatchers("/api/video-call/**").permitAll()
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/trip/**").permitAll()
                 .requestMatchers("/api/blog/**").permitAll()
