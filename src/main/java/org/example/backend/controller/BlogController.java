@@ -84,6 +84,25 @@ public class BlogController {
         }
     }
 
+    @GetMapping("/post/{id}")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getPostById(@PathVariable Integer id) {
+        try {
+            BlogPost posts = blogService.getBlogPostById(id)
+                    .orElseThrow(() -> new AppException(ErrorCode.POST_NOT_FOUND));
+            Map<String, Object> postMap = new HashMap<>();
+            postMap.put("id", posts.getId());
+            postMap.put("title", posts.getTitle());
+            postMap.put("content", posts.getContent());
+            postMap.put("authorName", posts.getUser().getFullName());
+            postMap.put("createdAt", posts.getCreatedAt());
+
+            return ResponseEntity.ok(ApiResponse.success(postMap));
+        } catch (AppException e) {
+            log.error("Error getting user posts", e);
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+    }
+
     @GetMapping("/user")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getUserPosts(
             HttpServletRequest request,
