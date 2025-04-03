@@ -25,7 +25,7 @@ import io.jsonwebtoken.Jwts;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-   @Value("${jwt.secret-key}")
+    @Value("${jwt.secret-key}")
     private String secretKey;
 
     private Key getSigningKey() {
@@ -35,16 +35,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
-                                  HttpServletResponse response,
-                                  FilterChain filterChain) throws ServletException, IOException {
+                                    HttpServletResponse response,
+                                    FilterChain filterChain) throws ServletException, IOException {
         try {
             String bearerToken = request.getHeader("Authorization");
             log.debug("Raw Authorization header: {}", bearerToken);
-            
+
             if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
                 String token = bearerToken.substring(7).trim();
                 log.debug("Processing token: {}", token);
-                
+
                 if (token != null && token.contains(".")) {
                     try {
                         Claims claims = Jwts.parserBuilder()
@@ -52,10 +52,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                 .build()
                                 .parseClaimsJws(token)
                                 .getBody();
-                        
+
                         String userEmail = claims.getSubject();
                         log.debug("Parsed claims: {}", claims);
-                        
+
                         if (userEmail != null) {
                             Authentication authentication = new JwtAuthentication(userEmail);
                             SecurityContextHolder.getContext().setAuthentication(authentication);
