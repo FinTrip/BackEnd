@@ -1,12 +1,13 @@
 package org.example.backend.entity;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.*;
 
 import java.time.LocalDateTime;
-
 @Entity
 @Data
+@Getter
+@Setter
 @Table(name = "replies")
 public class Replies {
     @Id

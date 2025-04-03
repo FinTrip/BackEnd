@@ -4,7 +4,7 @@ server:
     context-path: /indentity
 spring:
   datasource:
-    url: jdbc:sqlserver://localhost:1433;databaseName=FinTrip;encrypt=false
+    url: jdbc:sqlserver://localhost:1433;databaseName=FinTrip1;encrypt=false
     username: sa
     password: 123456
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver

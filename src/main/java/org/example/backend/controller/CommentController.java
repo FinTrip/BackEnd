@@ -4,7 +4,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.dto.ApiResponse;
 import org.example.backend.dto.CommentRequest;
+import org.example.backend.dto.ReplyRequest;
 import org.example.backend.entity.Comments;
+import org.example.backend.entity.Replies;
 import org.example.backend.exception.AppException;
 import org.example.backend.exception.ErrorCode;
 import org.example.backend.service.CommentService;
@@ -53,6 +55,33 @@ public class CommentController {
         }
     }
 
+    @PostMapping("/reply")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> createReply(
+            HttpServletRequest request,
+            @Valid @RequestBody ReplyRequest replyRequest) {
+        try {
+            String userEmail = (String) request.getAttribute("userEmail");
+            if (userEmail == null) {
+                throw new AppException(ErrorCode.UNAUTHORIZED_USER);
+            }
+
+            Replies reply = commentService.createReply(userEmail, replyRequest);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("id", reply.getId());
+            response.put("content", reply.getContent());
+            response.put("authorName", reply.getUser().getFullName());
+            response.put("createdAt", reply.getCreatedAt());
+            
+            return ResponseEntity.ok(ApiResponse.success(response));
+        } catch (AppException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Error creating reply", e);
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+    }
+
     @GetMapping("/post/{postId}")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getPostComments(
             @PathVariable int postId) {
@@ -76,9 +105,32 @@ public class CommentController {
         }
     }
 
+    @GetMapping("/{commentId}/replies")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getCommentReplies(
+            @PathVariable Integer commentId) {
+        try {
+            List<Replies> replies = commentService.getCommentReplies(commentId);
+            List<Map<String, Object>> response = replies.stream()
+                .map(reply -> {
+                    Map<String, Object> replyMap = new HashMap<>();
+                    replyMap.put("id", reply.getId());
+                    replyMap.put("content", reply.getContent());
+                    replyMap.put("authorName", reply.getUser().getFullName());
+                    replyMap.put("createdAt", reply.getCreatedAt());
+                    return replyMap;
+                })
+                .collect(Collectors.toList());
+            
+            return ResponseEntity.ok(ApiResponse.success(response));
+        } catch (Exception e) {
+            log.error("Error getting replies for comment: {}", commentId, e);
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+    }
+
     @DeleteMapping("/{commentId}")
     public ResponseEntity<ApiResponse<String>> deleteComment(
-            @PathVariable Long commentId) {
+            @PathVariable Integer commentId) {
         try {
             String userEmail = SecurityConfig.getCurrentUserEmail();
             log.info("Deleting comment {} for user: {}", commentId, userEmail);
@@ -89,6 +141,23 @@ public class CommentController {
             throw e;
         } catch (Exception e) {
             log.error("Error deleting comment", e);
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @DeleteMapping("/reply/{replyId}")
+    public ResponseEntity<ApiResponse<String>> deleteReply(
+            @PathVariable Integer replyId) {
+        try {
+            String userEmail = SecurityConfig.getCurrentUserEmail();
+            log.info("Deleting reply {} for user: {}", replyId, userEmail);
+            
+            commentService.deleteReply(userEmail, replyId);
+            return ResponseEntity.ok(ApiResponse.success("Reply deleted successfully"));
+        } catch (AppException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Error deleting reply", e);
             throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
     }
