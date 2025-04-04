@@ -3,6 +3,7 @@ package org.example.backend.entity;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.awt.*;
 import java.time.LocalDateTime;
 
 @Data
@@ -37,6 +38,8 @@ public class BlogPost {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @Column(name = "images")
+    private String images;
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
@@ -52,4 +55,6 @@ public class BlogPost {
         PUBLISHED,
         ARCHIVED
     }
+
+
 }
