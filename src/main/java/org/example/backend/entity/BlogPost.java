@@ -22,7 +22,7 @@ public class BlogPost {
     @JoinColumn(name = "travel_plan_id")
     private TravelPlan travelPlan;
 
-    @Column(length = 255)
+    @Column(columnDefinition = "TEXT", length = 255)
     private String title;
 
     @Column(columnDefinition = "TEXT")
