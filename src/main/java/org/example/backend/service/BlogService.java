@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 
@@ -128,6 +129,32 @@ public class BlogService {
     @Transactional
     public BlogPost saveBlogPost(BlogPost blogPost) {
         return blogPostRepository.save(blogPost);
+    }
+
+    public List<BlogPost> getHotTrendPosts() {
+        try {
+            List<BlogPost> allPosts = blogPostRepository.findAll();
+            
+            // Sắp xếp bài viết theo điểm hot trend
+            return allPosts.stream()
+                .sorted((post1, post2) -> {
+                    int score1 = calculateHotTrendScore(post1);
+                    int score2 = calculateHotTrendScore(post2);
+                    return score2 - score1; // Sắp xếp giảm dần
+                })
+                .limit(10) // Lấy 10 bài viết hot nhất
+                .collect(Collectors.toList());
+        } catch (Exception e) {
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    private int calculateHotTrendScore(BlogPost post) {
+        int views = post.getViews() != null ? post.getViews() : 0;
+        int likes = post.getLikes() != null ? post.getLikes() : 0;
+        int comments = post.getCommentsCount() != null ? post.getCommentsCount() : 0;
+        
+        return views + (likes * 3) + (comments * 5);
     }
 }
 

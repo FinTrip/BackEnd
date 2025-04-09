@@ -162,5 +162,39 @@ public class BlogController {
         }
     }
 
-   
+    @GetMapping("/hot-trend")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getHotTrendPosts() {
+        try {
+            List<BlogPost> hotPosts = blogService.getHotTrendPosts();
+            List<Map<String, Object>> response = hotPosts.stream()
+                .map(post -> {
+                    Map<String, Object> postMap = new HashMap<>();
+                    postMap.put("id", post.getId());
+                    postMap.put("title", post.getTitle());
+                    postMap.put("content", post.getContent());
+                    postMap.put("authorName", post.getUser().getFullName());
+                    postMap.put("createdAt", post.getCreatedAt());
+                    postMap.put("views", post.getViews());
+                    postMap.put("likes", post.getLikes());
+                    postMap.put("commentsCount", post.getCommentsCount());
+                    postMap.put("hotScore", calculateHotTrendScore(post));
+                    
+                    return postMap;
+                })
+                .collect(Collectors.toList());
+            
+            return ResponseEntity.ok(ApiResponse.success(response));
+        } catch (Exception e) {
+            log.error("Error getting hot trend posts", e);
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    private int calculateHotTrendScore(BlogPost post) {
+        int views = post.getViews() != null ? post.getViews() : 0;
+        int likes = post.getLikes() != null ? post.getLikes() : 0;
+        int comments = post.getCommentsCount() != null ? post.getCommentsCount() : 0;
+        
+        return views + (likes * 3) + (comments * 5);
+    }
 }
