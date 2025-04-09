@@ -53,6 +53,8 @@ public enum ErrorCode {
 
     //Travel
     TRAVELPLAN_NOT_FOUND(HttpStatus.NOT_FOUND, "Travel plan not found"),
+    //Post
+    ALREADY_LIKED(HttpStatus.BAD_REQUEST, "Already liked"),
     
     // API related errors
     API_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "API error occurred"),
