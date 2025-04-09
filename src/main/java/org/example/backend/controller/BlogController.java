@@ -143,9 +143,10 @@ public class BlogController {
     @PostMapping("/{postId}/like")
     public ResponseEntity<ApiResponse<Map<String, Object>>> likePost(
             @PathVariable Integer postId,
-            @RequestParam String userEmail) {
+            HttpServletRequest request) {
         try {
-            if (userEmail == null || userEmail.isEmpty()) {
+            String userEmail = (String) request.getAttribute("userEmail");
+            if (userEmail == null) {
                 throw new AppException(ErrorCode.UNAUTHORIZED_USER);
             }
             

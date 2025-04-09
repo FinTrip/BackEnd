@@ -84,9 +84,9 @@ public class BlogService {
     @Transactional
     public boolean likePost(Integer postId, String userEmail) {
         try {
-            // Bỏ qua việc kiểm tra user tồn tại tạm thời
-            /*User user = userRepository.findByEmail(userEmail)
-                    .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));*/
+            // Kiểm tra user tồn tại
+            User user = userRepository.findByEmail(userEmail)
+                    .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
                     
             BlogPost blogPost = blogPostRepository.findById(postId)
                     .orElseThrow(() -> new AppException(ErrorCode.POST_NOT_FOUND));
@@ -121,6 +121,8 @@ public class BlogService {
             blogPostRepository.save(blogPost);
             
             return isLiked;
+        } catch (AppException e) {
+            throw e;
         } catch (Exception e) {
             e.printStackTrace();
             throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR);
