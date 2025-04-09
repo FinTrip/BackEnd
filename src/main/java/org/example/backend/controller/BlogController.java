@@ -18,6 +18,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.stream.Collectors;
+import java.util.ArrayList;
+import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @RestController
@@ -89,12 +91,18 @@ public class BlogController {
         try {
             BlogPost posts = blogService.getBlogPostById(id)
                     .orElseThrow(() -> new AppException(ErrorCode.POST_NOT_FOUND));
+            
+            // Increment view count when post is viewed
+            blogService.increaseViewCount(id);
+            
             Map<String, Object> postMap = new HashMap<>();
             postMap.put("id", posts.getId());
             postMap.put("title", posts.getTitle());
             postMap.put("content", posts.getContent());
             postMap.put("authorName", posts.getUser().getFullName());
             postMap.put("createdAt", posts.getCreatedAt());
+            postMap.put("views", posts.getViews());
+            postMap.put("likes", posts.getLikes());
 
             return ResponseEntity.ok(ApiResponse.success(postMap));
         } catch (AppException e) {
@@ -132,4 +140,27 @@ public class BlogController {
             throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
     }
+    @PostMapping("/{postId}/like")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> likePost(
+            @PathVariable Integer postId,
+            @RequestParam String userEmail) {
+        try {
+            if (userEmail == null || userEmail.isEmpty()) {
+                throw new AppException(ErrorCode.UNAUTHORIZED_USER);
+            }
+            
+            boolean liked = blogService.likePost(postId, userEmail);
+            Map<String, Object> response = new HashMap<>();
+            response.put("liked", liked);
+            
+            return ResponseEntity.ok(ApiResponse.success(response));
+        } catch (AppException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Error liking post: {}", e.getMessage());
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+   
 }

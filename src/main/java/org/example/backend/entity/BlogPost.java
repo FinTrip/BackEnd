@@ -55,6 +55,17 @@ public class BlogPost {
         PUBLISHED,
         ARCHIVED
     }
+    @Column(name = "views")
+    private Integer views = 0;
+
+    @Column(name = "likes")
+    private Integer likes = 0;
+
+    @Column(name = "comments_count")
+    private Integer commentsCount = 0;
+
+    @Column(name = "liked_user_emails", columnDefinition = "TEXT")
+    private String likedUserEmails = "";
 
 
 }
