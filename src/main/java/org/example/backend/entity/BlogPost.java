@@ -38,8 +38,9 @@ public class BlogPost {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    @Column(name = "images")
+    @Column(name = "images", columnDefinition = "TEXT")
     private String images;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
