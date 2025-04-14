@@ -1,6 +1,7 @@
 package org.example.backend.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.backend.dto.BlogPostRequest;
 import org.example.backend.entity.BlogPost;
 import org.example.backend.entity.TravelPlan;
@@ -12,21 +13,25 @@ import org.example.backend.repository.TravelPlanRepository;
 import org.example.backend.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
-
 @RequiredArgsConstructor
 public class BlogService {
     private final BlogPostRepository blogPostRepository;
     private final UserRepository userRepository;
     private final TravelPlanRepository travelPlanRepository;
+    private final UploadImageFile uploadImageFile;
+
     @Transactional
-    public BlogPost createBlogPost(String userEmail, BlogPostRequest request) {
+    public BlogPost createBlogPost(String userEmail, BlogPostRequest request, List<MultipartFile> images) {
         //Tìm user
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(()-> new AppException(ErrorCode.USER_NOT_FOUND));
@@ -41,14 +46,43 @@ public class BlogService {
                 throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS);
             }
         }
+
+        // Upload images to Cloudinary and get URLs
+        List<String> imageUrls = new ArrayList<>();
+        if (images != null && !images.isEmpty()) {
+            for (MultipartFile image : images) {
+                try {
+                    if (!image.isEmpty()) {
+                        String imageUrl = uploadImageFile.uploadImage(image);
+                        if (imageUrl != null && !imageUrl.isEmpty()) {
+                            imageUrls.add(imageUrl);
+                        }
+                    }
+                } catch (IOException e) {
+                    log.error("Error uploading image: ", e);
+                    throw new AppException(ErrorCode.IMAGE_UPLOAD_ERROR);
+                }
+            }
+        }
+
+        if (imageUrls.isEmpty()) {
+            throw new AppException(ErrorCode.FILE_UPLOAD_ERROR, "Phải upload ít nhất 1 ảnh cho bài viết");
+        }
+
         BlogPost blogPost = new BlogPost();
         blogPost.setTitle(request.getTitle());
         blogPost.setContent(request.getContent());
+        blogPost.setImages(String.join(",", imageUrls)); // Store image URLs as comma-separated string
         blogPost.setUser(user);
         blogPost.setStatus(BlogPost.PostStatus.PUBLISHED);
+        blogPost.setViews(0);
+        blogPost.setLikes(0);
+        blogPost.setCommentsCount(0);
+        
         if(travelPlan != null) {
             blogPost.setTravelPlan(travelPlan);
         }
+        
         return blogPostRepository.save(blogPost);
     }
     public List<BlogPost> getAllBlogPosts() {

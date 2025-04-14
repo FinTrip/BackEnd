@@ -14,6 +14,9 @@ public class BlogPostRequest {
     @NotBlank(message = "Nội dung không được để trống")
     private String content;
 
+    // URL của ảnh sau khi upload lên Cloudinary
+    private String images;
+
     private Integer travelPlanId;
 }
 

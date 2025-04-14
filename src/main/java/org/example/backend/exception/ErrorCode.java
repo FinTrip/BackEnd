@@ -74,7 +74,9 @@ public enum ErrorCode {
     USER_ALREADY_IN_ROOM(HttpStatus.CONFLICT, "User already in room"),
     ROOM_CREATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "Room creation failed"),
     ROOM_JOIN_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "Room join failed"),
-    COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND,"Comment Not Found");
+    COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND,"Comment Not Found"),
+    FILE_UPLOAD_ERROR(HttpStatus.NOT_FOUND,"file Not Found"),
+    IMAGE_UPLOAD_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to upload image to Cloudinary");
 
     private final HttpStatus status;
     private final String message;
