@@ -42,9 +42,9 @@ public class Destination {
     @JsonIgnore
     private List<TravelPlan> travelPlans;
 
-    @OneToMany(mappedBy = "destination", fetch = FetchType.LAZY)
-    @JsonIgnore
-    private List<Recommendation> recommendations;
+//    @OneToMany(mappedBy = "destination", fetch = FetchType.LAZY)
+//    @JsonIgnore
+//    private List<Recommendation> recommendations;
 
     @PrePersist
     protected void onCreate() {
