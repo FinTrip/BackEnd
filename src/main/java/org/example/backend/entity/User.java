@@ -57,8 +57,8 @@ public class User {
     @OneToMany(mappedBy = "user")
     private List<Notification> notifications;
 
-    @OneToMany(mappedBy = "user")
-    private List<Recommendation> recommendations;
+//    @OneToMany(mappedBy = "user")
+//    private List<Recommendation> recommendations;
 
 
     public enum UserStatus {

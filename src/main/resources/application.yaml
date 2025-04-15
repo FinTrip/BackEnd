@@ -4,12 +4,12 @@ server:
     context-path: /indentity
 spring:
   datasource:
-    url: jdbc:sqlserver://localhost:1433;databaseName=FinTrip1;encrypt=false
-    username: sa
-    password: 123456
-    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+    url: jdbc:mysql://localhost:3306/FinTrip?useSSL=false&serverTimezone=UTC
+    username: root
+    password: Tuan@1312003
+    driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
-    database-platform: org.hibernate.dialect.SQLServer2012Dialect
+    database-platform: org.hibernate.dialect.MySQL8Dialect
     hibernate:
       ddl-auto: update
     show-sql: true
