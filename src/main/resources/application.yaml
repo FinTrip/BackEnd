@@ -4,18 +4,18 @@ server:
     context-path: /indentity
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3306/fintrip1?useSSL=false&serverTimezone=UTC
+    url: jdbc:mysql://localhost:3306/FinTrip1?useSSL=false&serverTimezone=UTC
     username: root
     password: 123456
     driver-class-name: com.mysql.cj.jdbc.Driver
-    jpa:
-      database-platform: org.hibernate.dialect.MySQL8Dialect
+  jpa:
+    database-platform: org.hibernate.dialect.MySQL8Dialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
       hibernate:
-        ddl-auto: update
-      show-sql: true
-      properties:
-        hibernate:
-          format_sql: true
+        format_sql: true
 
   mail:
     host: smtp.gmail.com
