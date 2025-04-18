@@ -3,6 +3,7 @@ package org.example.backend.service;
 import com.sun.source.doctree.UsesTree;
 import org.example.backend.dto.*;
 import org.example.backend.entity.PasswordResetToken;
+import org.example.backend.repository.BlogPostRepository;
 import org.example.backend.repository.PasswordResetTokenRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.SimpleMailMessage;
@@ -30,6 +31,7 @@ public class AuthService {
     private final RoleRepository roleRepository;
     private final JavaMailSender mailSender;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final BlogPostRepository blogPostRepository;
 
     public LoginResponse login(LoginRequest request) {
         try {
@@ -338,4 +340,74 @@ public class AuthService {
         }
     }
 
+    public UserProfileResponse getUserProfile(String token) {
+        try {
+            log.info("Getting user profile with token");
+            
+            if (token == null || token.trim().isEmpty()) {
+                log.error("Token is missing");
+                throw new AppException(ErrorCode.MISSING_REQUIRED_FIELD, "Authorization token is required");
+            }
+            
+            // Extract user from token
+            User user = jwtService.extractUser(token);
+            if (user == null) {
+                log.error("Invalid token: no user found");
+                throw new AppException(ErrorCode.INVALID_TOKEN, "Invalid token");
+            }
+            
+            // Refresh user data from database to ensure it's up-to-date
+            User freshUser = userRepository.findById(user.getId())
+                    .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+            
+            log.info("Returning profile for user: {}", freshUser.getEmail());
+            
+            // Đếm số lượng bài viết
+            long postCount = blogPostRepository.countByUser(freshUser);
+            
+            return UserProfileResponse.builder()
+                    .email(freshUser.getEmail())
+                    .fullName(freshUser.getFullName())
+                    .friendCount(freshUser.getFriends().size())
+                    .postCount((int) postCount)
+                    .build();
+            
+        } catch (AppException e) {
+            log.error("Get user profile failed with AppException: {}", e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            log.error("Get user profile failed with unexpected error: ", e);
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Unexpected error: " + e.getMessage());
+        }
+    }
+
+    // Add the getUserProfile method that takes userId instead of token
+    public UserProfileResponse getUserProfileById(Integer userId) {
+        try {
+            log.info("Getting user profile for user ID: {}", userId);
+            
+            // Find user by ID
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+            
+            log.info("Found user: {}", user.getEmail());
+            
+            // Đếm số lượng bài viết
+            long postCount = blogPostRepository.countByUser(user);
+            
+            return UserProfileResponse.builder()
+                    .email(user.getEmail())
+                    .fullName(user.getFullName())
+                    .friendCount(user.getFriends().size())
+                    .postCount((int) postCount)
+                    .build();
+            
+        } catch (AppException e) {
+            log.error("Get user profile by ID failed with AppException: {}", e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            log.error("Get user profile by ID failed with unexpected error: ", e);
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Unexpected error: " + e.getMessage());
+        }
+    }
 }
