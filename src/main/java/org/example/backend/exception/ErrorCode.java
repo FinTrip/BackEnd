@@ -84,7 +84,8 @@ public enum ErrorCode {
     ALREADY_FRIENDS(HttpStatus.CONFLICT, "Hai người dùng đã là bạn bè"),
     USER_BLOCKED(HttpStatus.FORBIDDEN, "Người dùng đã bị chặn"),
     FRIEND_REQUEST_NOT_FOUND(HttpStatus.NOT_FOUND, "Không tìm thấy lời mời kết bạn"),
-    NOT_FRIENDS(HttpStatus.BAD_REQUEST, "Hai người dùng không phải là bạn bè");
+    NOT_FRIENDS(HttpStatus.BAD_REQUEST, "Hai người dùng không phải là bạn bè"),
+    CHAT_ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "Chat room not found");
 
     private final HttpStatus status;
     private final String message;
@@ -94,5 +95,11 @@ public enum ErrorCode {
         this.message = message;
     }
 
+    public HttpStatus getStatus() {
+        return status;
+    }
 
+    public String getMessage() {
+        return message;
+    }
 }
