@@ -60,8 +60,8 @@ public class BlogController {
 
             // Convert MultipartFile[] to List<MultipartFile> và loại bỏ các file null hoặc empty
             List<MultipartFile> fileList = Arrays.stream(files)
-                .filter(file -> file != null && !file.isEmpty())
-                .collect(Collectors.toList());
+                    .filter(file -> file != null && !file.isEmpty())
+                    .collect(Collectors.toList());
 
             if (fileList.isEmpty()) {
                 throw new AppException(ErrorCode.FILE_UPLOAD_ERROR, "Phải upload ít nhất 1 ảnh hợp lệ cho bài viết");
@@ -70,10 +70,10 @@ public class BlogController {
             // Tạo bài viết với danh sách ảnh
             BlogPost post = blogService.createBlogPost(userEmail, blogPostRequest, fileList);
             log.info("Blog post created with ID: {} with {} images", post.getId(), fileList.size());
-            
+
             List<String> imageUrls = post.getImages() != null && !post.getImages().isEmpty() ?
-                Arrays.asList(post.getImages().split(",")) :
-                new ArrayList<>();
+                    Arrays.asList(post.getImages().split(",")) :
+                    new ArrayList<>();
 
             Map<String, Object> response = new HashMap<>();
             response.put("id", post.getId());
@@ -82,7 +82,7 @@ public class BlogController {
             response.put("images", imageUrls);
             response.put("authorName", post.getUser().getFullName());
             response.put("createdAt", post.getCreatedAt());
-            
+
             if (post.getTravelPlan() != null) {
                 Map<String, Object> travelPlanInfo = new HashMap<>();
                 travelPlanInfo.put("id", post.getTravelPlan().getId());
@@ -103,23 +103,24 @@ public class BlogController {
         try {
             List<BlogPost> posts = blogService.getAllBlogPosts();
             List<Map<String, Object>> response = posts.stream()
-                .map(post -> {
-                    Map<String, Object> postMap = new HashMap<>();
-                    postMap.put("id", post.getId());
-                    postMap.put("title", post.getTitle());
-                    postMap.put("content", post.getContent());
-                    postMap.put("images", post.getImages() != null ? 
-                        Arrays.asList(post.getImages().split(",")) : 
-                        new ArrayList<>());
-                    postMap.put("authorName", post.getUser().getFullName());
-                    postMap.put("createdAt", post.getCreatedAt());
-                    postMap.put("views", post.getViews());
-                    postMap.put("likes", post.getLikes());
+                    .map(post -> {
+                        Map<String, Object> postMap = new HashMap<>();
+                        postMap.put("id", post.getId());
+                        postMap.put("title", post.getTitle());
+                        postMap.put("content", post.getContent());
+                        postMap.put("images", post.getImages() != null ?
+                                Arrays.asList(post.getImages().split(",")) :
+                                new ArrayList<>());
+                        postMap.put("authorName", post.getUser().getFullName());
+                        postMap.put("authorId", post.getUser().getId());
+                        postMap.put("createdAt", post.getCreatedAt());
+                        postMap.put("views", post.getViews());
+                        postMap.put("likes", post.getLikes());
 
-                    return postMap;
-                })
-                .collect(Collectors.toList());
-            
+                        return postMap;
+                    })
+                    .collect(Collectors.toList());
+
             return ResponseEntity.ok(ApiResponse.success(response));
         } catch (Exception e) {
             log.error("Error getting all posts", e);
@@ -132,18 +133,19 @@ public class BlogController {
         try {
             BlogPost post = blogService.getBlogPostById(id)
                     .orElseThrow(() -> new AppException(ErrorCode.POST_NOT_FOUND));
-            
+
             // Increment view count when post is viewed
             blogService.increaseViewCount(id);
-            
+
             Map<String, Object> postMap = new HashMap<>();
             postMap.put("id", post.getId());
             postMap.put("title", post.getTitle());
             postMap.put("content", post.getContent());
-            postMap.put("images", post.getImages() != null ? 
-                Arrays.asList(post.getImages().split(",")) : 
-                new ArrayList<>());
+            postMap.put("images", post.getImages() != null ?
+                    Arrays.asList(post.getImages().split(",")) :
+                    new ArrayList<>());
             postMap.put("authorName", post.getUser().getFullName());
+            postMap.put("authorId", post.getUser().getId());
             postMap.put("createdAt", post.getCreatedAt());
             postMap.put("views", post.getViews());
             postMap.put("likes", post.getLikes());
@@ -167,22 +169,22 @@ public class BlogController {
 
             List<BlogPost> posts = blogService.getUserPost(userEmail);
             List<Map<String, Object>> response = posts.stream()
-                .map(post -> {
-                    Map<String, Object> postMap = new HashMap<>();
-                    postMap.put("id", post.getId());
-                    postMap.put("title", post.getTitle());
-                    postMap.put("content", post.getContent());
-                    postMap.put("images", post.getImages() != null ? 
-                        Arrays.asList(post.getImages().split(",")) : 
-                        new ArrayList<>());
-                    postMap.put("createdAt", post.getCreatedAt());
-                    if (post.getTravelPlan() != null) {
-                        postMap.put("travelPlanId", post.getTravelPlan().getId());
-                    }
-                    return postMap;
-                })
-                .collect(Collectors.toList());
-            
+                    .map(post -> {
+                        Map<String, Object> postMap = new HashMap<>();
+                        postMap.put("id", post.getId());
+                        postMap.put("title", post.getTitle());
+                        postMap.put("content", post.getContent());
+                        postMap.put("images", post.getImages() != null ?
+                                Arrays.asList(post.getImages().split(",")) :
+                                new ArrayList<>());
+                        postMap.put("createdAt", post.getCreatedAt());
+                        if (post.getTravelPlan() != null) {
+                            postMap.put("travelPlanId", post.getTravelPlan().getId());
+                        }
+                        return postMap;
+                    })
+                    .collect(Collectors.toList());
+
             return ResponseEntity.ok(ApiResponse.success(response));
         } catch (AppException e) {
             throw e;
@@ -201,11 +203,11 @@ public class BlogController {
             if (userEmail == null) {
                 throw new AppException(ErrorCode.UNAUTHORIZED_USER);
             }
-            
+
             boolean liked = blogService.likePost(postId, userEmail);
             Map<String, Object> response = new HashMap<>();
             response.put("liked", liked);
-            
+
             return ResponseEntity.ok(ApiResponse.success(response));
         } catch (AppException e) {
             throw e;
@@ -220,22 +222,22 @@ public class BlogController {
         try {
             List<BlogPost> hotPosts = blogService.getHotTrendPosts();
             List<Map<String, Object>> response = hotPosts.stream()
-                .map(post -> {
-                    Map<String, Object> postMap = new HashMap<>();
-                    postMap.put("id", post.getId());
-                    postMap.put("title", post.getTitle());
-                    postMap.put("content", post.getContent());
-                    postMap.put("authorName", post.getUser().getFullName());
-                    postMap.put("createdAt", post.getCreatedAt());
-                    postMap.put("views", post.getViews());
-                    postMap.put("likes", post.getLikes());
-                    postMap.put("commentsCount", post.getCommentsCount());
-                    postMap.put("hotScore", calculateHotTrendScore(post));
-                    
-                    return postMap;
-                })
-                .collect(Collectors.toList());
-            
+                    .map(post -> {
+                        Map<String, Object> postMap = new HashMap<>();
+                        postMap.put("id", post.getId());
+                        postMap.put("title", post.getTitle());
+                        postMap.put("content", post.getContent());
+                        postMap.put("authorName", post.getUser().getFullName());
+                        postMap.put("createdAt", post.getCreatedAt());
+                        postMap.put("views", post.getViews());
+                        postMap.put("likes", post.getLikes());
+                        postMap.put("commentsCount", post.getCommentsCount());
+                        postMap.put("hotScore", calculateHotTrendScore(post));
+
+                        return postMap;
+                    })
+                    .collect(Collectors.toList());
+
             return ResponseEntity.ok(ApiResponse.success(response));
         } catch (Exception e) {
             log.error("Error getting hot trend posts", e);
@@ -247,7 +249,7 @@ public class BlogController {
         int views = post.getViews() != null ? post.getViews() : 0;
         int likes = post.getLikes() != null ? post.getLikes() : 0;
         int comments = post.getCommentsCount() != null ? post.getCommentsCount() : 0;
-        
+
         return views + (likes * 3) + (comments * 5);
     }
 }
