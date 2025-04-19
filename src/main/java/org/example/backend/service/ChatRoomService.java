@@ -34,6 +34,7 @@ public class ChatRoomService {
     private final UserRepository userRepository;
     private final GroupMessageRepository groupMessageRepository;
     private final SimpMessageSendingOperations messagingTemplate;
+    private final FriendshipService friendshipService;
 
     @Transactional
     public ChatRoom createChatRoom(String creatorEmail, ChatRoomRequest request) {
@@ -53,7 +54,7 @@ public class ChatRoomService {
         creatorMember.setUser(creator);
         roomMembersRepository.save(creatorMember);
         
-        // Thêm các thành viên khác
+        // Thêm các thành viên khác (chỉ thêm những người là bạn bè)
         List<Integer> memberIds = request.getMemberIds();
         for (Integer memberId : memberIds) {
             if (memberId.equals(creator.getId())) {
@@ -62,6 +63,12 @@ public class ChatRoomService {
             
             User member = userRepository.findById(memberId)
                     .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "Member not found with ID: " + memberId));
+            
+            // Kiểm tra xem người dùng có phải là bạn bè không
+            if (!friendshipService.areFriends(creatorEmail, memberId)) {
+                log.warn("Cannot add non-friend user {} to chat room", memberId);
+                continue; // Bỏ qua nếu không phải bạn bè
+            }
             
             RoomMembers roomMember = new RoomMembers();
             roomMember.setChatRoom(savedRoom);
@@ -86,7 +93,7 @@ public class ChatRoomService {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "You are not a member of this chat room");
         }
         
-        // Thêm các thành viên mới
+        // Thêm các thành viên mới (chỉ thêm những người là bạn bè)
         List<Integer> memberIds = request.getMemberIds();
         for (Integer memberId : memberIds) {
             User member = userRepository.findById(memberId)
@@ -96,6 +103,12 @@ public class ChatRoomService {
             Optional<RoomMembers> existingMember = roomMembersRepository.findByUserAndChatRoom(member, chatRoom);
             if (existingMember.isPresent()) {
                 continue; // Bỏ qua nếu đã là thành viên
+            }
+            
+            // Kiểm tra xem người dùng có phải là bạn bè không
+            if (!friendshipService.areFriends(userEmail, memberId)) {
+                log.warn("Cannot add non-friend user {} to chat room", memberId);
+                throw new AppException(ErrorCode.NOT_FRIENDS, "You can only add friends to the chat room");
             }
             
             RoomMembers roomMember = new RoomMembers();

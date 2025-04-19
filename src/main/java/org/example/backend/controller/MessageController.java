@@ -128,4 +128,69 @@ public class MessageController {
         messageService.markMessageAsRead(userEmail, messageId);
         return ResponseEntity.ok(ApiResponse.success("Message marked as read"));
     }
+    
+    @GetMapping("/chat-list")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getChatList(
+            HttpServletRequest request) {
+        String userEmail = (String) request.getAttribute("userEmail");
+        if (userEmail == null) {
+            throw new AppException(ErrorCode.UNAUTHORIZED_USER);
+        }
+        
+        List<Messages> latestMessages = messageService.getLatestMessagesFromEachSender(userEmail);
+        List<Map<String, Object>> response = latestMessages.stream()
+                .map(message -> {
+                    Map<String, Object> messageMap = new HashMap<>();
+                    messageMap.put("id", message.getId());
+                    messageMap.put("content", Objects.requireNonNullElse(message.getContent(), ""));
+                    messageMap.put("createdAt", Objects.requireNonNullElse(message.getCreatedAt(), LocalDateTime.now()));
+                    messageMap.put("isRead", Objects.requireNonNullElse(message.getIsRead(), false));
+                    Map<String, Object> senderMap = new HashMap<>();
+                    senderMap.put("id", message.getSender().getId());
+                    senderMap.put("email", Objects.requireNonNullElse(message.getSender().getEmail(), ""));
+                    senderMap.put("fullName", Objects.requireNonNullElse(message.getSender().getFullName(), ""));
+                    messageMap.put("sender", senderMap);
+                    return messageMap;
+                })
+                .collect(Collectors.toList());
+                
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+    
+    @GetMapping("/conversation/{userId}")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getConversation(
+            HttpServletRequest request,
+            @PathVariable Integer userId) {
+        String userEmail = (String) request.getAttribute("userEmail");
+        if (userEmail == null) {
+            throw new AppException(ErrorCode.UNAUTHORIZED_USER);
+        }
+        
+        List<Messages> conversation = messageService.getConversationWithUser(userEmail, userId);
+        List<Map<String, Object>> response = conversation.stream()
+                .map(message -> {
+                    Map<String, Object> messageMap = new HashMap<>();
+                    messageMap.put("id", message.getId());
+                    messageMap.put("content", Objects.requireNonNullElse(message.getContent(), ""));
+                    messageMap.put("createdAt", Objects.requireNonNullElse(message.getCreatedAt(), LocalDateTime.now()));
+                    messageMap.put("isRead", Objects.requireNonNullElse(message.getIsRead(), false));
+                    
+                    Map<String, Object> senderMap = new HashMap<>();
+                    senderMap.put("id", message.getSender().getId());
+                    senderMap.put("email", Objects.requireNonNullElse(message.getSender().getEmail(), ""));
+                    senderMap.put("fullName", Objects.requireNonNullElse(message.getSender().getFullName(), ""));
+                    messageMap.put("sender", senderMap);
+                    
+                    Map<String, Object> receiverMap = new HashMap<>();
+                    receiverMap.put("id", message.getReceiver().getId());
+                    receiverMap.put("email", Objects.requireNonNullElse(message.getReceiver().getEmail(), ""));
+                    receiverMap.put("fullName", Objects.requireNonNullElse(message.getReceiver().getFullName(), ""));
+                    messageMap.put("receiver", receiverMap);
+                    
+                    return messageMap;
+                })
+                .collect(Collectors.toList());
+                
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
 }
