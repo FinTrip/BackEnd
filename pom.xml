@@ -79,7 +79,7 @@
             <artifactId>jjwt-jackson</artifactId>
             <version>0.11.5</version>
         </dependency>
-
+    
         <!-- Spring Security -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -145,11 +145,11 @@
     </build>
 
     <repositories>
-        <!--        <repository>-->
-        <!--            <id>github</id>-->
-        <!--            <name>GitHub ZEGOCLOUD Apache Maven Packages</name>-->
-        <!--            <url>https://maven.pkg.github.com/ZEGOCLOUD/zego_server_assistant</url>-->
-        <!--        </repository>-->
+<!--        <repository>-->
+<!--            <id>github</id>-->
+<!--            <name>GitHub ZEGOCLOUD Apache Maven Packages</name>-->
+<!--            <url>https://maven.pkg.github.com/ZEGOCLOUD/zego_server_assistant</url>-->
+<!--        </repository>-->
         <repository>
             <id>jitpack.io</id>
             <url>https://jitpack.io</url>

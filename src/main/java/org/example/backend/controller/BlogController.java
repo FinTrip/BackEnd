@@ -112,6 +112,7 @@ public class BlogController {
                         Arrays.asList(post.getImages().split(",")) : 
                         new ArrayList<>());
                     postMap.put("authorName", post.getUser().getFullName());
+                    postMap.put("authorId", post.getUser().getId());
                     postMap.put("createdAt", post.getCreatedAt());
                     postMap.put("views", post.getViews());
                     postMap.put("likes", post.getLikes());
@@ -144,6 +145,7 @@ public class BlogController {
                 Arrays.asList(post.getImages().split(",")) : 
                 new ArrayList<>());
             postMap.put("authorName", post.getUser().getFullName());
+            postMap.put("authorId", post.getUser().getId());
             postMap.put("createdAt", post.getCreatedAt());
             postMap.put("views", post.getViews());
             postMap.put("likes", post.getLikes());

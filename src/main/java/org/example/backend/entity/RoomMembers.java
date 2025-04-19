@@ -15,7 +15,7 @@ public class RoomMembers {
 
     @ManyToOne
     @JoinColumn(name = "room_id")
-    private ChatRoom room;  // Phòng chat liên quan
+    private ChatRoom chatRoom;  // Phòng chat liên quan (đổi tên từ room sang chatRoom)
 
     @ManyToOne
     @JoinColumn(name = "user_id")
