@@ -102,8 +102,9 @@ public class ChatRoomService {
             // Kiểm tra nếu đã là thành viên
             Optional<RoomMembers> existingMember = roomMembersRepository.findByUserAndChatRoom(member, chatRoom);
             if (existingMember.isPresent()) {
+                log.warn("User {} is already a member of chat room {}", memberId, chatRoom.getId());
                 continue; // Bỏ qua nếu đã là thành viên
-            }
+            }   
             
             // Kiểm tra xem người dùng có phải là bạn bè không
             if (!friendshipService.areFriends(userEmail, memberId)) {

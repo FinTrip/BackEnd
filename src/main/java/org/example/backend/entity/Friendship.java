@@ -37,12 +37,12 @@ public class Friendship {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    public enum FriendshipStatus {
-        PENDING,       // Lời mời kết bạn đang chờ
-        ACCEPTED,      // Đã chấp nhận kết bạn
-        REJECTED,      // Đã từ chối kết bạn
-        BLOCKED        // Đã chặn người dùng
-    }
+                public enum FriendshipStatus {
+                    PENDING,       // Lời mời kết bạn đang chờ
+                    ACCEPTED,      // Đã chấp nhận kết bạn
+                    REJECTED,      // Đã từ chối kết bạn
+                    BLOCKED        // Đã chặn người dùng
+                }
 
     @PrePersist
     protected void onCreate() {

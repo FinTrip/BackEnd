@@ -194,6 +194,49 @@ public class BlogController {
         }
     }
 
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getPostsByUserId(
+            @PathVariable Integer userId,
+            HttpServletRequest request) {
+        try {
+            String userEmail = (String) request.getAttribute("userEmail");
+            if (userEmail == null) {
+                throw new AppException(ErrorCode.UNAUTHORIZED_USER);
+            }
+            
+            List<BlogPost> posts = blogService.getPostsByUserId(userId);
+            List<Map<String, Object>> response = posts.stream()
+                    .map(post -> {
+                        Map<String, Object> postMap = new HashMap<>();
+                        postMap.put("id", post.getId());
+                        postMap.put("title", post.getTitle());
+                        postMap.put("content", post.getContent());
+                        postMap.put("images", post.getImages() != null ?
+                                Arrays.asList(post.getImages().split(",")) :
+                                new ArrayList<>());
+                        postMap.put("authorName", post.getUser().getFullName());
+                        postMap.put("authorId", post.getUser().getId());
+                        postMap.put("createdAt", post.getCreatedAt());
+                        postMap.put("views", post.getViews());
+                        postMap.put("likes", post.getLikes());
+                        
+                        if (post.getTravelPlan() != null) {
+                            postMap.put("travelPlanId", post.getTravelPlan().getId());
+                        }
+                        
+                        return postMap;
+                    })
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(ApiResponse.success(response));
+        } catch (AppException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Error getting posts by user ID", e);
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+    }
+
     @PostMapping("/{postId}/like")
     public ResponseEntity<ApiResponse<Map<String, Object>>> likePost(
             @PathVariable Integer postId,

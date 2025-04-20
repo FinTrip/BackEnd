@@ -55,6 +55,7 @@ public class AuthService {
             log.info("Login successful for user: {}", user.getEmail());
             return LoginResponse.builder()
                     .token(token)
+                    .id(user.getId())
                     .email(user.getEmail())
                     .fullName(user.getFullName())
                     .role(user.getRole() != null ? user.getRole().getRoleName() : "USER")
