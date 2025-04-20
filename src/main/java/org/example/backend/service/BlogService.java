@@ -97,6 +97,15 @@ public class BlogService {
                 .orElseThrow(()->new AppException(ErrorCode.USER_NOT_FOUND));
             return blogPostRepository.findByUserOrderByCreatedAtDesc(user);
     }
+    
+    public List<BlogPost> getPostsByUserId(Integer userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User with ID " + userId + " not found"));
+        
+        log.info("Fetching posts for user ID: {}", userId);
+        return blogPostRepository.findByUserOrderByCreatedAtDesc(user);
+    }
+    
     @Transactional
     public void increaseViewCount(Integer postId) {
         try {
