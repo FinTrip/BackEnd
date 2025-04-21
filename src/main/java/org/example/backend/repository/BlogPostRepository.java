@@ -11,4 +11,7 @@ import java.util.List;
 public interface BlogPostRepository extends JpaRepository<BlogPost, Integer> {
     List<BlogPost> findAllByOrderByCreatedAtDesc();
     List<BlogPost> findByUserOrderByCreatedAtDesc(User user);
+    
+    // Đếm số lượng bài viết của người dùng
+    long countByUser(User user);
 }

@@ -112,4 +112,54 @@ public class AuthController {
             throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
     }
+    
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<UserProfileResponse>> getUserProfile(
+            @RequestHeader("Authorization") String token) {
+        try {
+            log.info("Getting user profile with token");
+            
+            // Remove "Bearer " prefix if present
+            if (token != null && token.startsWith("Bearer ")) {
+                token = token.substring(7);
+            }
+            
+            UserProfileResponse userProfile = authService.getUserProfile(token);
+            
+            return ResponseEntity.ok(ApiResponse.success(userProfile));
+        } catch (AppException e) {
+            log.error("Get user profile failed with AppException: {}", e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            log.error("Get user profile failed with unexpected error: ", e);
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+    }
+    
+    @GetMapping("/users/{userId}")
+    public ResponseEntity<ApiResponse<UserProfileResponse>> getUserProfileById(
+            @PathVariable Integer userId,
+            @RequestHeader("Authorization") String token) {
+        try {
+            log.info("Getting user profile for user ID: {}", userId);
+            
+            // Remove "Bearer " prefix if present
+            if (token != null && token.startsWith("Bearer ")) {
+                token = token.substring(7);
+            }
+            
+            // Validate token first (this will throw an exception if token is invalid)
+            authService.getUserProfile(token);
+            
+            UserProfileResponse userProfile = authService.getUserProfileById(userId);
+            
+            return ResponseEntity.ok(ApiResponse.success(userProfile));
+        } catch (AppException e) {
+            log.error("Get user profile by ID failed with AppException: {}", e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            log.error("Get user profile by ID failed with unexpected error: ", e);
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+    }
 }
