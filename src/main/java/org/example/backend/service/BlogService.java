@@ -201,5 +201,102 @@ public class BlogService {
         
         return views + (likes * 3) + (comments * 5);
     }
+
+    @Transactional
+    public BlogPost updateBlogPost(String userEmail, Integer postId, BlogPostRequest request, List<MultipartFile> newImages) {
+        log.info("Updating blog post with ID: {}", postId);
+        
+        // Tìm user
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+                
+        // Tìm bài viết
+        BlogPost blogPost = blogPostRepository.findById(postId)
+                .orElseThrow(() -> new AppException(ErrorCode.POST_NOT_FOUND));
+                
+        // Kiểm tra quyền sở hữu
+        if (!blogPost.getUser().getId().equals(user.getId())) {
+            log.warn("User {} attempted to update post owned by user {}", user.getId(), blogPost.getUser().getId());
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "You can only update your own posts");
+        }
+        
+        log.info("Updating post - current details: title='{}', content='{}'", blogPost.getTitle(), blogPost.getContent());
+        
+        // Cập nhật tiêu đề và nội dung
+        blogPost.setTitle(request.getTitle());
+        blogPost.setContent(request.getContent());
+        
+        // Cập nhật travel plan nếu có
+        if (request.getTravelPlanId() != null) {
+            TravelPlan travelPlan = travelPlanRepository.findById(request.getTravelPlanId())
+                    .orElseThrow(() -> new AppException(ErrorCode.TRAVELPLAN_NOT_FOUND));
+                    
+            // Kiểm tra plan có thuộc User hay không
+            if (!travelPlan.getUser().getId().equals(user.getId())) {
+                throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS);
+            }
+            
+            blogPost.setTravelPlan(travelPlan);
+            log.info("Updated travel plan to ID: {}", travelPlan.getId());
+        }
+        
+        // Cập nhật ảnh nếu có
+        if (newImages != null && !newImages.isEmpty()) {
+            List<String> imageUrls = new ArrayList<>();
+            
+            for (MultipartFile image : newImages) {
+                try {
+                    if (!image.isEmpty()) {
+                        String imageUrl = uploadImageFile.uploadImage(image);
+                        if (imageUrl != null && !imageUrl.isEmpty()) {
+                            imageUrls.add(imageUrl);
+                            log.info("Uploaded new image: {}", imageUrl);
+                        }
+                    }
+                } catch (IOException e) {
+                    log.error("Error uploading image: ", e);
+                    throw new AppException(ErrorCode.IMAGE_UPLOAD_ERROR);
+                }
+            }
+            
+            if (!imageUrls.isEmpty()) {
+                blogPost.setImages(String.join(",", imageUrls));
+                log.info("Updated images to: {}", blogPost.getImages());
+            }
+        }
+        
+        // Nếu cung cấp URL ảnh trực tiếp trong request
+        if (request.getImages() != null && !request.getImages().isEmpty()) {
+            blogPost.setImages(request.getImages());
+            log.info("Updated images directly from request: {}", request.getImages());
+        }
+        
+        BlogPost savedPost = blogPostRepository.save(blogPost);
+        log.info("Successfully updated blog post with ID: {}", savedPost.getId());
+        return savedPost;
+    }
+    
+    @Transactional
+    public void deleteBlogPost(String userEmail, Integer postId) {
+        log.info("Attempting to delete blog post with ID: {}", postId);
+        
+        // Tìm user
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+                
+        // Tìm bài viết
+        BlogPost blogPost = blogPostRepository.findById(postId)
+                .orElseThrow(() -> new AppException(ErrorCode.POST_NOT_FOUND));
+                
+        // Kiểm tra quyền sở hữu
+        if (!blogPost.getUser().getId().equals(user.getId())) {
+            log.warn("User {} attempted to delete post owned by user {}", user.getId(), blogPost.getUser().getId());
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "You can only delete your own posts");
+        }
+        
+        // Xóa bài viết
+        blogPostRepository.delete(blogPost);
+        log.info("Successfully deleted blog post with ID: {}", postId);
+    }
 }
 

@@ -289,6 +289,7 @@ public class AuthService {
                 log.info("Updating fullName from {} to {}", user.getFullName(), newFullName);
                 user.setFullName(newFullName);
             }
+
             
             //3 Update password
             if (request.getNewPassword() != null && !request.getNewPassword().trim().isEmpty()) {

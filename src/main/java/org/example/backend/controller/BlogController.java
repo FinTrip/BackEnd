@@ -295,4 +295,116 @@ public class BlogController {
 
         return views + (likes * 3) + (comments * 5);
     }
+
+    
+    @PutMapping("/update/{postId}")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> updatePostJson(
+            HttpServletRequest request,
+            @PathVariable Integer postId,
+            @RequestBody Map<String, Object> updateData) {
+        try {
+            log.info("Received JSON request to update blog post ID: {}", postId);
+            
+            String userEmail = (String) request.getAttribute("userEmail");
+            if (userEmail == null) {
+                throw new AppException(ErrorCode.UNAUTHORIZED_USER);
+            }
+
+            String title = (String) updateData.get("title");
+            String content = (String) updateData.get("content");
+            Integer travelPlanId = null;
+            
+            if (updateData.get("travelPlanId") != null) {
+                try {
+                    travelPlanId = Integer.valueOf(updateData.get("travelPlanId").toString());
+                } catch (NumberFormatException e) {
+                    log.warn("Invalid travelPlanId format: {}", updateData.get("travelPlanId"));
+                }
+            }
+            
+            log.info("JSON update - title: {}, content length: {}, travelPlanId: {}", 
+                    title, content != null ? content.length() : 0, travelPlanId);
+            
+            if (title == null || content == null) {
+                throw new AppException(ErrorCode.INVALID_INPUT, "Title and content are required");
+            }
+
+            BlogPostRequest blogPostRequest = new BlogPostRequest();
+            blogPostRequest.setTitle(title);
+            blogPostRequest.setContent(content);
+            blogPostRequest.setTravelPlanId(travelPlanId);
+            
+            // Xử lý images nếu có trong request JSON
+            if (updateData.containsKey("images")) {
+                if (updateData.get("images") instanceof List) {
+                    @SuppressWarnings("unchecked")
+                    List<String> imagesList = (List<String>) updateData.get("images");
+                    if (!imagesList.isEmpty()) {
+                        String imagesStr = String.join(",", imagesList);
+                        blogPostRequest.setImages(imagesStr);
+                        log.info("JSON update - images from list: {}", imagesStr);
+                    }
+                } else if (updateData.get("images") instanceof String) {
+                    blogPostRequest.setImages((String) updateData.get("images"));
+                    log.info("JSON update - images from string: {}", blogPostRequest.getImages());
+                }
+            }
+
+            BlogPost updatedPost = blogService.updateBlogPost(userEmail, postId, blogPostRequest, new ArrayList<>());
+            log.info("Blog post updated successfully with JSON request - ID: {}", updatedPost.getId());
+
+            List<String> responseImageUrls = updatedPost.getImages() != null && !updatedPost.getImages().isEmpty() ?
+                    Arrays.asList(updatedPost.getImages().split(",")) :
+                    new ArrayList<>();
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("id", updatedPost.getId());
+            response.put("title", updatedPost.getTitle());
+            response.put("content", updatedPost.getContent());
+            response.put("images", responseImageUrls);
+            response.put("authorName", updatedPost.getUser().getFullName());
+            response.put("createdAt", updatedPost.getCreatedAt());
+
+            if (updatedPost.getTravelPlan() != null) {
+                Map<String, Object> travelPlanInfo = new HashMap<>();
+                travelPlanInfo.put("id", updatedPost.getTravelPlan().getId());
+                travelPlanInfo.put("startDate", updatedPost.getTravelPlan().getStartDate());
+                travelPlanInfo.put("endDate", updatedPost.getTravelPlan().getEndDate());
+                response.put("travelPlan", travelPlanInfo);
+            }
+
+            return ResponseEntity.ok(ApiResponse.success(response));
+        } catch (AppException e) {
+            log.error("Application error in JSON update: {}", e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            log.error("Unexpected error in JSON update: ", e);
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Error updating blog post: " + e.getMessage());
+        }
+    }
+
+    @DeleteMapping("delete/{postId}")
+    public ResponseEntity<ApiResponse<String>> deletePost(
+            HttpServletRequest request,
+            @PathVariable Integer postId) {
+        try {
+            log.info("Received request to delete blog post ID: {}", postId);
+            
+            String userEmail = (String) request.getAttribute("userEmail");
+            if (userEmail == null) {
+                throw new AppException(ErrorCode.UNAUTHORIZED_USER);
+            }
+
+            blogService.deleteBlogPost(userEmail, postId);
+            log.info("Blog post deleted successfully, ID: {}", postId);
+
+            return ResponseEntity.ok(ApiResponse.success("Bài viết đã được xóa thành công"));
+        } catch (AppException e) {
+            log.error("Application error deleting blog post: {}", e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            log.error("Unexpected error deleting blog post: ", e);
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Error deleting blog post: " + e.getMessage());
+        }
+    }
 }
