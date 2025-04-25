@@ -43,6 +43,18 @@ public class AuthService {
             log.info("Found user: {}", user);
             log.info("Checking password for user: {}", user.getEmail());
             
+            // Kiểm tra trạng thái người dùng - không cho phép đăng nhập nếu bị ban
+            if (user.getStatus() == User.UserStatus.banned) {
+                log.error("User account is banned: {}", user.getEmail());
+                throw new AppException(ErrorCode.USER_BANNED, "Tài khoản của bạn đã bị khóa do vi phạm quy định cộng đồng");
+            }
+            
+            // Kiểm tra nếu tài khoản bị vô hiệu hóa
+            if (user.getStatus() == User.UserStatus.inactive) {
+                log.error("User account is inactive: {}", user.getEmail());
+                throw new AppException(ErrorCode.USER_INACTIVE, "Tài khoản của bạn đã bị vô hiệu hóa");
+            }
+            
             // So sánh mật khẩu đã mã hóa
             if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
                 log.error("Invalid password for user: {}", user.getEmail());
