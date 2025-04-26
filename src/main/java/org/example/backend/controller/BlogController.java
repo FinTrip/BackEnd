@@ -383,6 +383,63 @@ public class BlogController {
         }
     }
 
+    @PutMapping(value = "/update/{postId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<Map<String, Object>>> updatePostWithImages(
+            HttpServletRequest request,
+            @PathVariable Integer postId,
+            @RequestParam("title") String title,
+            @RequestParam("content") String content,
+            @RequestParam(value = "files", required = false) MultipartFile[] files,
+            @RequestParam(value = "travelPlanId", required = false) Integer travelPlanId) {
+        try {
+            String userEmail = (String) request.getAttribute("userEmail");
+            if (userEmail == null) {
+                throw new AppException(ErrorCode.UNAUTHORIZED_USER);
+            }
+
+            BlogPostRequest blogPostRequest = new BlogPostRequest();
+            blogPostRequest.setTitle(title);
+            blogPostRequest.setContent(content);
+            blogPostRequest.setTravelPlanId(travelPlanId);
+
+            // Convert MultipartFile[] to List<MultipartFile> và loại bỏ các file null hoặc empty
+            List<MultipartFile> fileList = files != null ? Arrays.stream(files)
+                    .filter(file -> file != null && !file.isEmpty())
+                    .collect(Collectors.toList()) : new ArrayList<>();
+
+            BlogPost updatedPost = blogService.updateBlogPost(userEmail, postId, blogPostRequest, fileList);
+            log.info("Blog post updated with ID: {} with {} images", updatedPost.getId(), fileList.size());
+
+            List<String> imageUrls = updatedPost.getImages() != null && !updatedPost.getImages().isEmpty() ?
+                    Arrays.asList(updatedPost.getImages().split(",")) :
+                    new ArrayList<>();
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("id", updatedPost.getId());
+            response.put("title", updatedPost.getTitle());
+            response.put("content", updatedPost.getContent());
+            response.put("images", imageUrls);
+            response.put("authorName", updatedPost.getUser().getFullName());
+            response.put("createdAt", updatedPost.getCreatedAt());
+
+            if (updatedPost.getTravelPlan() != null) {
+                Map<String, Object> travelPlanInfo = new HashMap<>();
+                travelPlanInfo.put("id", updatedPost.getTravelPlan().getId());
+                travelPlanInfo.put("startDate", updatedPost.getTravelPlan().getStartDate());
+                travelPlanInfo.put("endDate", updatedPost.getTravelPlan().getEndDate());
+                response.put("travelPlan", travelPlanInfo);
+            }
+
+            return ResponseEntity.ok(ApiResponse.success(response));
+        } catch (AppException e) {
+            log.error("Application error in update with images: {}", e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            log.error("Unexpected error in update with images: ", e);
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Error updating blog post: " + e.getMessage());
+        }
+    }
+
     @DeleteMapping("delete/{postId}")
     public ResponseEntity<ApiResponse<String>> deletePost(
             HttpServletRequest request,
