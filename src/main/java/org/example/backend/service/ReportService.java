@@ -25,6 +25,7 @@ public class ReportService {
     private final ReportRepository reportRepository;
     private final UserRepository userRepository;
     private final BlogPostRepository blogPostRepository;
+    private final NotificationService notificationService;
     
     @Transactional
     public Report createReport(String reporterEmail, ReportRequest request) {
@@ -153,6 +154,48 @@ public class ReportService {
                     throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Error deleting post: " + e.getMessage());
                 }
             }
+        }
+        
+        // Sau khi xử lý báo cáo, gửi email cho người liên quan
+        if (report.getReportType() == Report.ReportType.USER_REPORT && report.getReportedUser() != null) {
+            String toEmail = report.getReportedUser().getEmail();
+            String subject = "Thông báo về báo cáo tài khoản";
+            String content = """
+        <html>
+            <body style="font-family: Arial, sans-serif; line-height: 1.6;">
+                <h2>Thông báo về xử lý tài khoản</h2>
+                <p>Xin chào,</p>
+                <p>Tài khoản của bạn đã được admin xử lý.</p>
+                <p><strong>Ghi chú:</strong> %s</p>
+                <p>Vui lòng liên hệ với bộ phận hỗ trợ nếu bạn cần thêm thông tin.</p>
+                <br>
+                <p>Trân trọng,</p>
+                <p><em>Đội ngũ FinTrip</em></p>
+            </body>
+        </html>
+        """.formatted(request.getAdminNote());
+
+            notificationService.sendEmailWithHtml(toEmail, subject, content);
+
+        } else if (report.getReportType() == Report.ReportType.POST_REPORT && report.getReportedPost() != null) {
+            String toEmail = report.getReportedPost().getUser().getEmail();
+            String subject = "Thông báo về báo cáo bài viết";
+            String content = """
+        <html>
+            <body style="font-family: Arial, sans-serif; line-height: 1.6;">
+                <h2>Thông báo về xử lý bài viết</h2>
+                <p>Xin chào,</p>
+                <p>Bài viết của bạn đã được admin xử lý.</p>
+                <p><strong>Ghi chú:</strong> %s</p>
+                <p>Vui lòng liên hệ với bộ phận hỗ trợ nếu bạn cần thêm thông tin.</p>
+                <br>
+                <p>Trân trọng,</p>
+                <p><em>Đội ngũ FinTrip</em></p>
+            </body>
+        </html>
+        """.formatted(request.getAdminNote());
+
+            notificationService.sendEmailWithHtml(toEmail, subject, content);
         }
         
         return reportRepository.save(report);
