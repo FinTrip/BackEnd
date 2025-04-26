@@ -339,18 +339,15 @@ public class BlogController {
                 if (updateData.get("images") instanceof List) {
                     @SuppressWarnings("unchecked")
                     List<String> imagesList = (List<String>) updateData.get("images");
-                    // Process list even if it's empty
-                    String imagesStr = String.join(",", imagesList);
-                    blogPostRequest.setImages(imagesStr);
-                    log.info("JSON update - images from list: {}", imagesStr);
+                    if (!imagesList.isEmpty()) {
+                        String imagesStr = String.join(",", imagesList);
+                        blogPostRequest.setImages(imagesStr);
+                        log.info("JSON update - images from list: {}", imagesStr);
+                    }
                 } else if (updateData.get("images") instanceof String) {
                     blogPostRequest.setImages((String) updateData.get("images"));
                     log.info("JSON update - images from string: {}", blogPostRequest.getImages());
-                } else if (updateData.get("images") == null) {
-                    // Explicitly handle null images field
-                    blogPostRequest.setImages("");
-                    log.info("JSON update - null images field set to empty string");
-                }
+                } 
             }
 
             BlogPost updatedPost = blogService.updateBlogPost(userEmail, postId, blogPostRequest, new ArrayList<>());
@@ -405,7 +402,9 @@ public class BlogController {
             blogPostRequest.setTitle(title);
             blogPostRequest.setContent(content);
             blogPostRequest.setTravelPlanId(travelPlanId);
+
             blogPostRequest.setImages(images);
+
 
             // Convert MultipartFile[] to List<MultipartFile> và loại bỏ các file null hoặc empty
             List<MultipartFile> fileList = files != null ? Arrays.stream(files)

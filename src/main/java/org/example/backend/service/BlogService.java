@@ -5,11 +5,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.dto.BlogPostRequest;
 import org.example.backend.entity.BlogPost;
+import org.example.backend.entity.Comments;
 import org.example.backend.entity.TravelPlan;
 import org.example.backend.entity.User;
 import org.example.backend.exception.AppException;
 import org.example.backend.exception.ErrorCode;
 import org.example.backend.repository.BlogPostRepository;
+import org.example.backend.repository.CommentRepository;
 import org.example.backend.repository.TravelPlanRepository;
 import org.example.backend.repository.UserRepository;
 import org.springframework.stereotype.Service;
@@ -33,6 +35,7 @@ public class BlogService {
     private final UserRepository userRepository;
     private final TravelPlanRepository travelPlanRepository;
     private final UploadImageFile uploadImageFile;
+    private final CommentRepository commentRepository;
 
 
     @Transactional
@@ -316,8 +319,20 @@ public class BlogService {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "You can only delete your own posts");
         }
 
-        // Xóa bài viết
-        blogPostRepository.delete(blogPost);
-        log.info("Successfully deleted blog post with ID: {}", postId);
+        try {
+            // QUAN TRỌNG: Xóa tất cả comment của bài viết trước
+            List<Comments> comments = commentRepository.findByPostId(postId);
+            if (!comments.isEmpty()) {
+                log.info("Deleting {} comments for blog post ID: {}", comments.size(), postId);
+                commentRepository.deleteAll(comments);
+            }
+
+            // Sau đó xóa bài viết
+            blogPostRepository.delete(blogPost);
+            log.info("Successfully deleted blog post with ID: {}", postId);
+        } catch (Exception e) {
+            log.error("Error deleting blog post: ", e);
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Error deleting blog post: " + e.getMessage());
+        }
     }
 }
