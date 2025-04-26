@@ -392,6 +392,7 @@ public class BlogController {
             @PathVariable Integer postId,
             @RequestParam("title") String title,
             @RequestParam("content") String content,
+            @RequestParam(value = "images", required = false) String images,
             @RequestParam(value = "files", required = false) MultipartFile[] files,
             @RequestParam(value = "travelPlanId", required = false) Integer travelPlanId) {
         try {
@@ -404,23 +405,12 @@ public class BlogController {
             blogPostRequest.setTitle(title);
             blogPostRequest.setContent(content);
             blogPostRequest.setTravelPlanId(travelPlanId);
-            
-            // Do not set images field by default to indicate we want to keep existing images
-            // unless new files are uploaded
+            blogPostRequest.setImages(images);
 
             // Convert MultipartFile[] to List<MultipartFile> và loại bỏ các file null hoặc empty
             List<MultipartFile> fileList = files != null ? Arrays.stream(files)
                     .filter(file -> file != null && !file.isEmpty())
                     .collect(Collectors.toList()) : new ArrayList<>();
-                    
-            // Only if new files are uploaded, we explicitly set the images field to empty
-            // which signals to the service that we want to replace the images
-            if (files != null && files.length > 0) {
-                // We're explicitly uploading new files, set to empty initially
-                // The actual content will be populated in the service
-                blogPostRequest.setImages("");
-                log.info("Setting images field empty for multipart upload with {} files", files.length);
-            }
 
             BlogPost updatedPost = blogService.updateBlogPost(userEmail, postId, blogPostRequest, fileList);
             log.info("Blog post updated with ID: {} with {} images", updatedPost.getId(), fileList.size());
