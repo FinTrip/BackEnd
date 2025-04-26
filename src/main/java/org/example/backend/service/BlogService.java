@@ -17,6 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -240,7 +241,7 @@ public class BlogService {
             log.info("Updated travel plan to ID: {}", travelPlan.getId());
         }
         
-        // Cập nhật ảnh nếu có
+        // Xử lý ảnh mới nếu có
         if (newImages != null && !newImages.isEmpty()) {
             List<String> imageUrls = new ArrayList<>();
             
@@ -260,6 +261,11 @@ public class BlogService {
             }
             
             if (!imageUrls.isEmpty()) {
+                // Nếu có ảnh cũ, thêm vào danh sách
+                if (blogPost.getImages() != null && !blogPost.getImages().isEmpty()) {
+                    List<String> existingImages = Arrays.asList(blogPost.getImages().split(","));
+                    imageUrls.addAll(existingImages);
+                }
                 blogPost.setImages(String.join(",", imageUrls));
                 log.info("Updated images to: {}", blogPost.getImages());
             }
