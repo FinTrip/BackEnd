@@ -347,7 +347,7 @@ public class BlogController {
                 } else if (updateData.get("images") instanceof String) {
                     blogPostRequest.setImages((String) updateData.get("images"));
                     log.info("JSON update - images from string: {}", blogPostRequest.getImages());
-                }
+                } 
             }
 
             BlogPost updatedPost = blogService.updateBlogPost(userEmail, postId, blogPostRequest, new ArrayList<>());

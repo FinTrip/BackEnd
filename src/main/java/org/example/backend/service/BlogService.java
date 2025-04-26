@@ -241,41 +241,43 @@ public class BlogService {
             log.info("Updated travel plan to ID: {}", travelPlan.getId());
         }
         
-        // Xử lý ảnh mới nếu có
-        if (newImages != null && !newImages.isEmpty()) {
-            List<String> imageUrls = new ArrayList<>();
-            
-            for (MultipartFile image : newImages) {
-                try {
-                    if (!image.isEmpty()) {
-                        String imageUrl = uploadImageFile.uploadImage(image);
-                        if (imageUrl != null && !imageUrl.isEmpty()) {
-                            imageUrls.add(imageUrl);
-                            log.info("Uploaded new image: {}", imageUrl);
-                        }
-                    }
-                } catch (IOException e) {
-                    log.error("Error uploading image: ", e);
-                    throw new AppException(ErrorCode.IMAGE_UPLOAD_ERROR);
-                }
+        // Xử lý ảnh
+        List<String> finalImageUrls = new ArrayList<>();
+        
+        // 1. Xử lý trường hợp có danh sách ảnh từ request (đã xử lý ở frontend)
+        if (request.getImages() != null && !request.getImages().isEmpty()) {
+            // Sử dụng CHÍNH XÁC danh sách ảnh từ request, THAY THẾ hoàn toàn danh sách cũ
+            finalImageUrls = new ArrayList<>(Arrays.asList(request.getImages().split(",")));
+            log.info("Using EXACTLY the images from request: {}", finalImageUrls);
+        } else {
+            // 2. Nếu không có danh sách ảnh từ request, giữ nguyên ảnh cũ
+            if (blogPost.getImages() != null && !blogPost.getImages().isEmpty()) {
+                finalImageUrls = new ArrayList<>(Arrays.asList(blogPost.getImages().split(",")));
+                log.info("No image info in request, keeping existing: {}", finalImageUrls);
             }
             
-            if (!imageUrls.isEmpty()) {
-                // Nếu có ảnh cũ, thêm vào danh sách
-                if (blogPost.getImages() != null && !blogPost.getImages().isEmpty()) {
-                    List<String> existingImages = Arrays.asList(blogPost.getImages().split(","));
-                    imageUrls.addAll(existingImages);
+            // 3. Chỉ thêm ảnh mới nếu không có request.images (trường hợp upload ảnh mới mà không gửi danh sách cũ)
+            if (newImages != null && !newImages.isEmpty()) {
+                for (MultipartFile image : newImages) {
+                    try {
+                        if (!image.isEmpty()) {
+                            String imageUrl = uploadImageFile.uploadImage(image);
+                            if (imageUrl != null && !imageUrl.isEmpty()) {
+                                finalImageUrls.add(imageUrl);
+                                log.info("Added new uploaded image: {}", imageUrl);
+                            }
+                        }
+                    } catch (IOException e) {
+                        log.error("Error uploading image: ", e);
+                        throw new AppException(ErrorCode.IMAGE_UPLOAD_ERROR);
+                    }
                 }
-                blogPost.setImages(String.join(",", imageUrls));
-                log.info("Updated images to: {}", blogPost.getImages());
             }
         }
         
-        // Nếu cung cấp URL ảnh trực tiếp trong request
-        if (request.getImages() != null && !request.getImages().isEmpty()) {
-            blogPost.setImages(request.getImages());
-            log.info("Updated images directly from request: {}", request.getImages());
-        }
+        // Lưu danh sách ảnh cuối cùng
+        blogPost.setImages(finalImageUrls.isEmpty() ? null : String.join(",", finalImageUrls));
+        log.info("Final images after update: {}", blogPost.getImages());
         
         BlogPost savedPost = blogPostRepository.save(blogPost);
         log.info("Successfully updated blog post with ID: {}", savedPost.getId());
