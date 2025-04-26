@@ -263,13 +263,17 @@ public class BlogService {
         }
         
         // 2. Xử lý URL ảnh từ request
-        if (request.getImages() != null && !request.getImages().isEmpty()) {
-            // Nếu có URL ảnh trong request, chỉ sử dụng những URL này
+        if (request.getImages() != null) {
+            // Nếu request có chứa trường images, sử dụng giá trị này (kể cả khi là chuỗi rỗng)
             finalImageUrls.clear();
-            finalImageUrls.addAll(Arrays.asList(request.getImages().split(",")));
-            log.info("Using images from request: {}", finalImageUrls);
+            if (!request.getImages().isEmpty()) {
+                finalImageUrls.addAll(Arrays.asList(request.getImages().split(",")));
+                log.info("Using images from request: {}", finalImageUrls);
+            } else {
+                log.info("Using empty image list from request");
+            }
         } else if (newImages == null || newImages.isEmpty()) {
-            // Nếu không có ảnh mới và không có URL trong request, giữ nguyên ảnh cũ
+            // Nếu không có ảnh mới và không có trường images trong request, giữ nguyên ảnh cũ
             if (blogPost.getImages() != null && !blogPost.getImages().isEmpty()) {
                 finalImageUrls.addAll(Arrays.asList(blogPost.getImages().split(",")));
                 log.info("Keeping existing images: {}", finalImageUrls);
