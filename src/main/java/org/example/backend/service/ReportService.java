@@ -125,33 +125,19 @@ public class ReportService {
             
             // Xử lý với báo cáo bài viết
             if (report.getReportType() == Report.ReportType.POST_REPORT && report.getReportedPost() != null) {
-                BlogPost postToDelete = report.getReportedPost();
+                BlogPost postToUpdate = report.getReportedPost();
                 
                 // Lưu thông tin bài viết để debug (optional)
-                Integer postId = postToDelete.getId();
+                Integer postId = postToUpdate.getId();
                 
-                // QUAN TRỌNG: Ngắt liên kết các báo cáo với bài viết trước khi xóa
-                // Tìm tất cả báo cáo liên quan đến bài viết này
-                List<Report> relatedReports = reportRepository.findAll().stream()
-                    .filter(r -> r.getReportedPost() != null && r.getReportedPost().getId().equals(postId))
-                    .toList();
-                
-                // Ngắt liên kết cho từng báo cáo
-                for (Report relatedReport : relatedReports) {
-                    relatedReport.setReportedPost(null);
-                    relatedReport.setAdminNote(relatedReport.getAdminNote() != null ? 
-                        relatedReport.getAdminNote() + " | Post has been deleted" : 
-                        "Post has been deleted");
-                    reportRepository.save(relatedReport);
-                }
-                
-                // Xóa bài viết sau khi đã ngắt tất cả liên kết
+                // Thay đổi trạng thái bài viết thành ARCHIVED thay vì xóa
                 try {
-                    blogPostRepository.delete(postToDelete);
-                    log.info("Admin {} deleted post {}", admin.getId(), postId);
+                    postToUpdate.setStatus(BlogPost.PostStatus.ARCHIVED);
+                    blogPostRepository.save(postToUpdate);
+                    log.info("Admin {} archived post {}", admin.getId(), postId);
                 } catch (Exception e) {
-                    log.error("Error deleting post {}: {}", postId, e.getMessage());
-                    throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Error deleting post: " + e.getMessage());
+                    log.error("Error archiving post {}: {}", postId, e.getMessage());
+                    throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Error archiving post: " + e.getMessage());
                 }
             }
         }
@@ -186,6 +172,7 @@ public class ReportService {
                 <h2>Thông báo về xử lý bài viết</h2>
                 <p>Xin chào,</p>
                 <p>Bài viết của bạn đã được admin xử lý.</p>
+                <p>Bài viết đã được chuyển sang trạng thái Đã lưu trữ (Archived).</p>
                 <p><strong>Ghi chú:</strong> %s</p>
                 <p>Vui lòng liên hệ với bộ phận hỗ trợ nếu bạn cần thêm thông tin.</p>
                 <br>
