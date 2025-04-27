@@ -105,6 +105,7 @@ public class ReportController {
                 if (processedReport.getReportedPost() != null) {
                     responseData.put("postExists", true);
                     responseData.put("reportedPostId", processedReport.getReportedPost().getId());
+                    responseData.put("reportedPostStatus", processedReport.getReportedPost().getStatus());
                 } else {
                     responseData.put("postExists", false);
                     responseData.put("message", "Post has been deleted");
