@@ -275,21 +275,22 @@ public class BlogService {
             }
             
             // 3. Chỉ thêm ảnh mới nếu không có request.images (trường hợp upload ảnh mới mà không gửi danh sách cũ)
-        if (newImages != null && !newImages.isEmpty()) {
-            for (MultipartFile image : newImages) {
-                try {
-                    if (!image.isEmpty()) {
-                        String imageUrl = uploadImageFile.uploadImage(image);
-                        if (imageUrl != null && !imageUrl.isEmpty()) {
-                            finalImageUrls.add(imageUrl);
+            if (newImages != null && !newImages.isEmpty()) {
+                for (MultipartFile image : newImages) {
+                    try {
+                        if (!image.isEmpty()) {
+                            String imageUrl = uploadImageFile.uploadImage(image);
+                            if (imageUrl != null && !imageUrl.isEmpty()) {
+                                finalImageUrls.add(imageUrl);
                                 log.info("Added new uploaded image: {}", imageUrl);
+                            }
                         }
+                    } catch (IOException e) {
+                        log.error("Error uploading image: ", e);
+                        throw new AppException(ErrorCode.IMAGE_UPLOAD_ERROR);
                     }
-                } catch (IOException e) {
-                    log.error("Error uploading image: ", e);
-                    throw new AppException(ErrorCode.IMAGE_UPLOAD_ERROR);
+
                 }
-            }
             }
         }
         
