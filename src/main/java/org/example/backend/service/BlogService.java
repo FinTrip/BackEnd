@@ -90,16 +90,27 @@ public class BlogService {
         return blogPostRepository.save(blogPost);
     }
     public List<BlogPost> getAllBlogPosts() {
-        return blogPostRepository.findAllByOrderByCreatedAtDesc();
+        return blogPostRepository.findAllByOrderByCreatedAtDesc().stream()
+                .filter(post -> post.getStatus() != BlogPost.PostStatus.ARCHIVED)
+                .collect(Collectors.toList());
     }
     public Optional<BlogPost> getBlogPostById(Integer id) {
-        return blogPostRepository.findById(id);
+        Optional<BlogPost> post = blogPostRepository.findById(id);
+        
+        if (post.isPresent() && post.get().getStatus() == BlogPost.PostStatus.ARCHIVED) {
+            // Return empty if post is archived
+            return Optional.empty();
+        }
+        
+        return post;
     }
 
     public List<BlogPost> getUserPost(String userEmail) {
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(()->new AppException(ErrorCode.USER_NOT_FOUND));
-            return blogPostRepository.findByUserOrderByCreatedAtDesc(user);
+        return blogPostRepository.findByUserOrderByCreatedAtDesc(user).stream()
+                .filter(post -> post.getStatus() != BlogPost.PostStatus.ARCHIVED)
+                .collect(Collectors.toList());
     }
     
     public List<BlogPost> getPostsByUserId(Integer userId) {
@@ -107,7 +118,9 @@ public class BlogService {
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User with ID " + userId + " not found"));
         
         log.info("Fetching posts for user ID: {}", userId);
-        return blogPostRepository.findByUserOrderByCreatedAtDesc(user);
+        return blogPostRepository.findByUserOrderByCreatedAtDesc(user).stream()
+                .filter(post -> post.getStatus() != BlogPost.PostStatus.ARCHIVED)
+                .collect(Collectors.toList());
     }
     
     @Transactional
@@ -182,7 +195,9 @@ public class BlogService {
 
     public List<BlogPost> getHotTrendPosts() {
         try {
-            List<BlogPost> allPosts = blogPostRepository.findAll();
+            List<BlogPost> allPosts = blogPostRepository.findAll().stream()
+                    .filter(post -> post.getStatus() != BlogPost.PostStatus.ARCHIVED)
+                    .collect(Collectors.toList());
             
             // Sắp xếp bài viết theo điểm hot trend
             return allPosts.stream()
