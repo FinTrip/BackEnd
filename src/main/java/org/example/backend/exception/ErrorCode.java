@@ -13,6 +13,7 @@ public enum ErrorCode {
     MISSING_REQUIRED_FIELD(HttpStatus.BAD_REQUEST, "Missing required field"),
     INVALID_FORMAT(HttpStatus.BAD_REQUEST, "Invalid format"),
     USER_INACTIVE(HttpStatus.FORBIDDEN, "User account is inactive"),
+    USER_BANNED(HttpStatus.FORBIDDEN, "User account has been banned"),
     TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "Token has expired"),
     INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "Invalid token"),
     UNAUTHORIZED_ACCESS(HttpStatus.UNAUTHORIZED, "Unauthorized access"),
@@ -85,7 +86,10 @@ public enum ErrorCode {
     USER_BLOCKED(HttpStatus.FORBIDDEN, "Người dùng đã bị chặn"),
     FRIEND_REQUEST_NOT_FOUND(HttpStatus.NOT_FOUND, "Không tìm thấy lời mời kết bạn"),
     NOT_FRIENDS(HttpStatus.BAD_REQUEST, "Hai người dùng không phải là bạn bè"),
-    CHAT_ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "Chat room not found");
+    CHAT_ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "Chat room not found"),
+
+    // Các lỗi liên quan đến báo cáo
+    REPORT_NOT_FOUND(HttpStatus.NOT_FOUND, "Report not found");
 
     private final HttpStatus status;
     private final String message;
