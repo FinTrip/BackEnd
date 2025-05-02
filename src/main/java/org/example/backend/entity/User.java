@@ -68,6 +68,8 @@ public class User {
     @OneToMany(mappedBy = "receiver")
     private List<Friendship> receivedFriendRequests;
 
+    private java.time.LocalDateTime vipExpireAt;
+
     public enum UserStatus {
         active, inactive, banned
     }

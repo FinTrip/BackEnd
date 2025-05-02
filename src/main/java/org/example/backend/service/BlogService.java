@@ -322,7 +322,7 @@ public class BlogService {
         }
         
         try {
-            // QUAN TRỌNG: Xóa tất cả comment của bài viết trước
+            // Xóa tất cả comment của bài viết trước
             List<Comments> comments = commentRepository.findByPostId(postId);
             if (!comments.isEmpty()) {
                 log.info("Deleting {} comments for blog post ID: {}", comments.size(), postId);

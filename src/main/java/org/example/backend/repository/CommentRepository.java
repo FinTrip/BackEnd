@@ -15,5 +15,4 @@ public interface CommentRepository extends JpaRepository<Comments, Long> {
     //Tìm tất cả các comment của một user, sắp xếp theo thời gian giảm dần
     List<Comments> findByUserOrderByCreatedAtDesc(User user);
     List<Comments> findByPostId(int postId);
-
 }
