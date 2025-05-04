@@ -93,6 +93,15 @@ public class PaymentServiceImpl implements PaymentService {
             String checkoutUrl = (String) data.get("checkoutUrl");
             String payosOrderId = String.valueOf(data.get("orderCode"));
 
+            User user = null;
+            if (requestDto.getUserId() != null) {
+                user = userRepository.findById(requestDto.getUserId().intValue()).orElse(null);
+            }
+            BlogPost post = null;
+            if (requestDto.getPostId() != null) {
+                post = blogPostRepository.findById(requestDto.getPostId().intValue()).orElse(null);
+            }
+
             Payment payment = Payment.builder()
                     .amount(requestDto.getAmount())
                     .description(requestDto.getDescription())
@@ -103,8 +112,8 @@ public class PaymentServiceImpl implements PaymentService {
                     .updatedAt(LocalDateTime.now())
                     .type(requestDto.getType())
                     .duration(requestDto.getDuration())
-                    .userId(requestDto.getUserId())
-                    .postId(requestDto.getPostId())
+                    .user(user)
+                    .post(post)
                     .build();
             paymentRepository.save(payment);
 
@@ -127,20 +136,20 @@ public class PaymentServiceImpl implements PaymentService {
 
         // Nếu thanh toán thành công thì cập nhật VIP hoặc quảng cáo
         if ("SUCCESS".equalsIgnoreCase(status)) {
-            if ("VIP".equalsIgnoreCase(payment.getType()) && payment.getUserId() != null && payment.getDuration() != null) {
-                userRepository.findById(payment.getUserId().intValue()).ifPresent(user -> {
+            if ("VIP".equalsIgnoreCase(payment.getType()) && payment.getUser() != null && payment.getDuration() != null) {
+                userRepository.findById(payment.getUser().getId()).ifPresent(userEntity -> {
                     LocalDateTime now = LocalDateTime.now();
-                    LocalDateTime currentVip = user.getVipExpireAt() != null && user.getVipExpireAt().isAfter(now) ? user.getVipExpireAt() : now;
-                    user.setVipExpireAt(currentVip.plusMonths(payment.getDuration()));
-                    userRepository.save(user);
+                    LocalDateTime currentVip = userEntity.getVipExpireAt() != null && userEntity.getVipExpireAt().isAfter(now) ? userEntity.getVipExpireAt() : now;
+                    userEntity.setVipExpireAt(currentVip.plusMonths(payment.getDuration()));
+                    userRepository.save(userEntity);
                 });
             }
-            if ("AD".equalsIgnoreCase(payment.getType()) && payment.getPostId() != null && payment.getDuration() != null) {
-                blogPostRepository.findById(payment.getPostId().intValue()).ifPresent(post -> {
+            if ("AD".equalsIgnoreCase(payment.getType()) && payment.getPost() != null && payment.getDuration() != null) {
+                blogPostRepository.findById(payment.getPost().getId()).ifPresent(postEntity -> {
                     LocalDateTime now = LocalDateTime.now();
-                    LocalDateTime currentAd = post.getAdExpireAt() != null && post.getAdExpireAt().isAfter(now) ? post.getAdExpireAt() : now;
-                    post.setAdExpireAt(currentAd.plusMonths(payment.getDuration()));
-                    blogPostRepository.save(post);
+                    LocalDateTime currentAd = postEntity.getAdExpireAt() != null && postEntity.getAdExpireAt().isAfter(now) ? postEntity.getAdExpireAt() : now;
+                    postEntity.setAdExpireAt(currentAd.plusMonths(payment.getDuration()));
+                    blogPostRepository.save(postEntity);
                 });
             }
         }

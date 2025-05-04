@@ -27,6 +27,12 @@ public class Payment {
 
     private String type; // "VIP" hoặc "AD"
     private Integer duration; // Số tháng (1, 3, 6), chỉ dùng cho quảng cáo hoặc VIP
-    private Long userId; // id user thực hiện giao dịch
-    private Long postId; // id bài viết quảng cáo (nếu có)
+
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private User user;
+
+    @ManyToOne
+    @JoinColumn(name = "post_id")
+    private BlogPost post;
 } 
