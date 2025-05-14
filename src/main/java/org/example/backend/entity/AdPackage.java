@@ -1,9 +1,9 @@
 package org.example.backend.entity;
 
 public enum AdPackage {
-    ONE_MONTH(1, 200_000L),
-    THREE_MONTH(3, 500_000L),
-    SIX_MONTH(6, 1_000_000L);
+    ONE_MONTH(1, 10000L),
+    THREE_MONTH(3, 10000L),
+    SIX_MONTH(6, 10000L);
 
     private final int months;
     private final long price;

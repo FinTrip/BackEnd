@@ -161,63 +161,148 @@ public class PaymentServiceImpl implements PaymentService {
         try {
             System.out.println("PayOS webhook payload: " + payload);
             
-            PayOS payOS = getPayOSInstance();
+            // Kiểm tra và log toàn bộ cấu trúc payload để debug
+            if (payload == null) {
+                System.out.println("Webhook payload is null");
+                return;
+            }
             
-            // Giả sử payload đã có cấu trúc đúng, truy cập trực tiếp vào data
+            // Log tất cả các key trong payload để xem cấu trúc
+            System.out.println("Webhook payload keys: " + payload.keySet());
+            
+            // Trong một số trường hợp, data có thể nằm trong trường hợp khác
+            Object dataObj = null;
             if (payload.containsKey("data")) {
-                Map<String, Object> data = (Map<String, Object>) payload.get("data");
-                
-                if (data.containsKey("orderCode")) {
-                    String orderCode = String.valueOf(data.get("orderCode"));
-                    
-                    // Kiểm tra trạng thái thanh toán
-                    String status = "00"; // Giả sử trạng thái thành công
-                    
-                    // Chỉ xử lý nếu thanh toán thành công
-                    if ("00".equals(status)) {
-                        // Tìm payment qua orderCode
-                        Payment payment = paymentRepository.findByPayosOrderId(orderCode)
-                            .orElseThrow(() -> new PaymentException(ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy giao dịch"));
-                        
-                        // Cập nhật trạng thái giao dịch
-                        payment.setStatus("SUCCESS");
-                        payment.setUpdatedAt(LocalDateTime.now());
-                        paymentRepository.save(payment);
-                        
-                        // Cập nhật thông tin VIP hoặc quảng cáo
-                        if ("VIP".equalsIgnoreCase(payment.getType()) && payment.getUser() != null && payment.getDuration() != null) {
-                            User user = payment.getUser();
-                            LocalDateTime now = LocalDateTime.now();
-                            LocalDateTime currentVip = user.getVipExpireAt() != null && user.getVipExpireAt().isAfter(now) ? 
-                                    user.getVipExpireAt() : now;
-                            
-                            user.setVipExpireAt(currentVip.plusMonths(payment.getDuration()));
-                            userRepository.save(user);
-                            
-                            System.out.println("Đã cập nhật gói VIP cho user " + user.getId() + 
-                                    " đến " + user.getVipExpireAt());
-                        }
-                        
-                        if ("AD".equalsIgnoreCase(payment.getType()) && payment.getPost() != null && payment.getDuration() != null) {
-                            BlogPost post = payment.getPost();
-                            LocalDateTime now = LocalDateTime.now();
-                            LocalDateTime currentAd = post.getAdExpireAt() != null && post.getAdExpireAt().isAfter(now) ? 
-                                    post.getAdExpireAt() : now;
-                            
-                            post.setAdExpireAt(currentAd.plusMonths(payment.getDuration()));
-                            blogPostRepository.save(post);
-                            
-                            System.out.println("Đã cập nhật quảng cáo cho bài viết " + post.getId() + 
-                                    " đến " + post.getAdExpireAt());
-                        }
-                    }
+                dataObj = payload.get("data");
+            } else if (payload.containsKey("result")) {
+                dataObj = payload.get("result");
+            } else if (payload.containsKey("resource")) {
+                dataObj = payload.get("resource");
+            }
+            
+            if (dataObj == null) {
+                System.out.println("Cannot find data in webhook payload");
+                // In toàn bộ payload để debug
+                for (Map.Entry<String, Object> entry : payload.entrySet()) {
+                    System.out.println(entry.getKey() + ": " + entry.getValue());
                 }
+                return;
+            }
+            
+            // Chuyển đổi data object thành Map
+            Map<String, Object> data;
+            if (dataObj instanceof Map) {
+                data = (Map<String, Object>) dataObj;
+            } else {
+                System.out.println("Data is not a Map: " + dataObj.getClass().getName());
+                return;
+            }
+            
+            // Log tất cả các key trong data để xem cấu trúc
+            System.out.println("Data keys: " + data.keySet());
+            
+            // Tìm orderCode trong các trường phổ biến
+            final String finalOrderCode;
+            String tempOrderCode = null;
+            if (data.containsKey("orderCode")) {
+                tempOrderCode = String.valueOf(data.get("orderCode"));
+            } else if (data.containsKey("orderId")) {
+                tempOrderCode = String.valueOf(data.get("orderId"));
+            } else if (data.containsKey("order_code")) {
+                tempOrderCode = String.valueOf(data.get("order_code"));
+            }
+            finalOrderCode = tempOrderCode;
+            
+            // Tìm status trong các trường phổ biến
+            String status = null;
+            // Đầu tiên, kiểm tra PayOS code=00 đặc biệt (thành công)
+            boolean isPayOSSuccess = false;
+            if (data.containsKey("code") && "00".equals(String.valueOf(data.get("code")))) {
+                isPayOSSuccess = true;
+                status = "PAID"; // Đặt status mặc định là PAID nếu code=00
+            } else if (data.containsKey("status")) {
+                status = String.valueOf(data.get("status"));
+            } else if (data.containsKey("paymentStatus")) {
+                status = String.valueOf(data.get("paymentStatus"));
+            } else if (data.containsKey("payment_status")) {
+                status = String.valueOf(data.get("payment_status"));
+            } else if (data.containsKey("state")) {
+                status = String.valueOf(data.get("state"));
+            }
+            
+            if (finalOrderCode == null) {
+                System.out.println("Missing orderCode in webhook data");
+                // In toàn bộ data để debug
+                for (Map.Entry<String, Object> entry : data.entrySet()) {
+                    System.out.println(entry.getKey() + ": " + entry.getValue());
+                }
+                return;
+            }
+            
+            System.out.println("Processing webhook for orderCode: " + finalOrderCode + " with status: " + status + 
+                ", PayOS success: " + isPayOSSuccess);
+            
+            // Chỉ xử lý nếu thanh toán thành công (status có thể là PAID, SUCCESS, COMPLETED, v.v. hoặc isPayOSSuccess=true)
+            if (isPayOSSuccess || isSuccessStatus(status)) {
+                // Tìm payment qua orderCode
+                Payment payment = paymentRepository.findByPayosOrderId(finalOrderCode)
+                    .orElseThrow(() -> new PaymentException(ErrorCode.RESOURCE_NOT_FOUND, 
+                            "Không tìm thấy giao dịch với orderCode: " + finalOrderCode));
+                
+                // Cập nhật trạng thái giao dịch
+                payment.setStatus("SUCCESS");
+                payment.setUpdatedAt(LocalDateTime.now());
+                paymentRepository.save(payment);
+                
+                System.out.println("Đã cập nhật trạng thái thanh toán thành SUCCESS cho đơn hàng: " + finalOrderCode);
+                
+                // Cập nhật thông tin VIP hoặc quảng cáo
+                if ("VIP".equalsIgnoreCase(payment.getType()) && payment.getUser() != null && payment.getDuration() != null) {
+                    User user = payment.getUser();
+                    LocalDateTime now = LocalDateTime.now();
+                    LocalDateTime currentVip = user.getVipExpireAt() != null && user.getVipExpireAt().isAfter(now) ? 
+                            user.getVipExpireAt() : now;
+                    
+                    user.setVipExpireAt(currentVip.plusMonths(payment.getDuration()));
+                    userRepository.save(user);
+                    
+                    System.out.println("Đã cập nhật gói VIP cho user " + user.getId() + 
+                            " đến " + user.getVipExpireAt());
+                }
+                
+                if ("AD".equalsIgnoreCase(payment.getType()) && payment.getPost() != null && payment.getDuration() != null) {
+                    BlogPost post = payment.getPost();
+                    LocalDateTime now = LocalDateTime.now();
+                    LocalDateTime currentAd = post.getAdExpireAt() != null && post.getAdExpireAt().isAfter(now) ? 
+                            post.getAdExpireAt() : now;
+                    
+                    post.setAdExpireAt(currentAd.plusMonths(payment.getDuration()));
+                    blogPostRepository.save(post);
+                    
+                    System.out.println("Đã cập nhật quảng cáo cho bài viết " + post.getId() + 
+                            " đến " + post.getAdExpireAt());
+                }
+            } else {
+                System.out.println("Trạng thái thanh toán không phải thành công: " + status + 
+                    ", PayOS success: " + isPayOSSuccess);
             }
             
         } catch (Exception e) {
             e.printStackTrace();
             throw new PaymentException(ErrorCode.INTERNAL_SERVER_ERROR, "Lỗi khi xử lý webhook: " + e.getMessage());
         }
+    }
+    
+    // Phương thức helper để kiểm tra nếu status là thành công
+    private boolean isSuccessStatus(String status) {
+        if (status == null) return false;
+        
+        status = status.toUpperCase();
+        return status.equals("PAID") || 
+               status.equals("SUCCESS") || 
+               status.equals("COMPLETED") || 
+               status.equals("SUCCESSFUL") ||
+               status.equals("00"); // Một số cổng thanh toán dùng mã "00" cho thành công
     }
     
     @Override

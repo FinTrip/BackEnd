@@ -17,6 +17,8 @@ import org.example.backend.entity.BlogPost;
 import org.example.backend.exception.ErrorCode;
 import org.example.backend.exception.PaymentException;
 import org.example.backend.service.impl.PaymentServiceImpl;
+import vn.payos.PayOS;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -32,6 +34,15 @@ public class PaymentController {
     private final UserRepository userRepository;
     private final PaymentRepository paymentRepository;
     private final BlogPostRepository blogPostRepository;
+
+    @Value("${payos.client-id}")
+    private String clientId;
+    
+    @Value("${payos.api-key}")
+    private String apiKey;
+    
+    @Value("${payos.checksum-key}")
+    private String checksumKey;
 
     @PostMapping("/create")
     public ResponseEntity<ApiResponse<PaymentResponseDto>> createPayment(HttpServletRequest request, @RequestBody PaymentRequestDto requestDto) {
@@ -49,13 +60,34 @@ public class PaymentController {
     }
 
     @PostMapping("/webhook")
-    public ResponseEntity<String> handleWebhook(@RequestBody Map<String, Object> payload, @RequestHeader(value = "x-client-id", required = false) String clientId) {
+    public ResponseEntity<ApiResponse<String>> handleWebhook(@RequestBody Map<String, Object> payload, @RequestHeader(value = "x-client-id", required = false) String clientId) {
         try {
-            // Kiểm tra clientId để đảm bảo webhook đến từ PayOS (có thể bỏ qua trong trường hợp test)
+            System.out.println("Webhook received with payload: " + payload);
+            
+            // Kiểm tra dữ liệu webhook
+            if (payload == null) {
+                System.out.println("Webhook payload is null");
+                ApiResponse<String> errorResponse = new ApiResponse<>();
+                errorResponse.setCode(400);
+                errorResponse.setMessage("Webhook payload is null");
+                return ResponseEntity.ok(errorResponse);
+            }
+            
+            // Thử xử lý webhook
             paymentService.handleWebhook(payload);
-            return ResponseEntity.ok("OK");
+            
+            System.out.println("Webhook processed successfully");
+            return ResponseEntity.ok(ApiResponse.success("Webhook processed successfully"));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+            e.printStackTrace();
+            System.err.println("Error processing webhook: " + e.getMessage());
+            
+            // Trả về 200 OK để PayOS biết chúng ta đã nhận được webhook
+            // Nếu trả về 4xx hoặc 5xx, PayOS sẽ thử lại gửi webhook
+            ApiResponse<String> errorResponse = new ApiResponse<>();
+            errorResponse.setCode(500);
+            errorResponse.setMessage("Error processing webhook: " + e.getMessage());
+            return ResponseEntity.ok(errorResponse);
         }
     }
     
@@ -182,5 +214,34 @@ public class PaymentController {
         }
         
         return ResponseEntity.ok(ApiResponse.success("Thanh toán thành công"));
+    }
+
+    @PostMapping("/register-webhook")
+    public ResponseEntity<ApiResponse<String>> registerWebhook(@RequestBody Map<String, String> request) {
+        try {
+            String webhookUrl = request.get("webhookUrl");
+            if (webhookUrl == null || webhookUrl.isEmpty()) {
+                ApiResponse<String> errorResponse = new ApiResponse<>();
+                errorResponse.setCode(400);
+                errorResponse.setMessage("Webhook URL is required");
+                errorResponse.setResult(null);
+                return ResponseEntity.badRequest().body(errorResponse);
+            }
+            
+            // Khởi tạo PayOS instance
+            PayOS payOS = new PayOS(clientId, apiKey, checksumKey);
+            
+            // Đăng ký webhook URL với PayOS
+            String verifiedWebhookUrl = payOS.confirmWebhook(webhookUrl);
+            
+            return ResponseEntity.ok(ApiResponse.success(verifiedWebhookUrl));
+        } catch (Exception e) {
+            e.printStackTrace();
+            ApiResponse<String> errorResponse = new ApiResponse<>();
+            errorResponse.setCode(500);
+            errorResponse.setMessage("Error registering webhook: " + e.getMessage());
+            errorResponse.setResult(null);
+            return ResponseEntity.status(500).body(errorResponse);
+        }
     }
 } 
