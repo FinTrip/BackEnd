@@ -72,9 +72,9 @@ public class Report {
     }
 
     public enum ReportStatus {
-        PENDING,
-        APPROVED,
-        REJECTED,
-        RESOLVED
+        PENDING, // đang cho xu ly
+        APPROVED, // xac nhan
+        REJECTED, // tu choi
+        RESOLVED // da xu li
     }
 } 

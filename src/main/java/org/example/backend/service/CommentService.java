@@ -72,9 +72,12 @@ public class CommentService {
     }
 
     public List<Comments> getPostComments(Integer postId) {
-        BlogPost post = postRepository.findById(postId)
-                .orElseThrow(() -> new AppException(ErrorCode.POST_NOT_FOUND));
-        return commentRepository.findByPostOrderByCreatedAtDesc(post);
+    BlogPost post = postRepository.findById(postId)
+            .orElseThrow(() -> new AppException(ErrorCode.POST_NOT_FOUND));
+    if (post.getStatus() == BlogPost.PostStatus.ARCHIVED) {
+        throw new AppException(ErrorCode.POST_NOT_FOUND, "Bài viết đã bị ẩn");
+    }
+    return commentRepository.findByPostOrderByCreatedAtDesc(post);
     }
 
     public List<Replies> getCommentReplies(Integer commentId) {
