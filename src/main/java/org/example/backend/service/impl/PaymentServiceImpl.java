@@ -10,6 +10,7 @@ import org.example.backend.exception.ErrorCode;
 import org.example.backend.exception.PaymentException;
 import org.example.backend.repository.PaymentRepository;
 import org.example.backend.service.PaymentService;
+import org.example.backend.service.WalletService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -17,14 +18,13 @@ import org.example.backend.repository.UserRepository;
 import org.example.backend.repository.BlogPostRepository;
 import org.example.backend.entity.User;
 import org.example.backend.entity.BlogPost;
+import org.example.backend.entity.WalletTransaction;
 
 import vn.payos.PayOS;
 import vn.payos.type.CheckoutResponseData;
 import vn.payos.type.ItemData;
 import vn.payos.type.PaymentData;
 import vn.payos.type.PaymentLinkData;
-import vn.payos.type.WebhookData;
-import vn.payos.type.Webhook;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -35,21 +35,29 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class PaymentServiceImpl implements PaymentService {
-    @Value("${payos.client-id}")
-    private String clientId;
-    @Value("${payos.api-key}")
-    private String apiKey;
-    @Value("${payos.checksum-key}")
-    private String checksumKey;
 
     private final PaymentRepository paymentRepository;
-    private final RestTemplate restTemplate = new RestTemplate();
     private final UserRepository userRepository;
     private final BlogPostRepository blogPostRepository;
+    private final WalletService walletService;
+    private final RestTemplate restTemplate = new RestTemplate();
     
-    // Lazy initialization của PayOS để tránh lỗi khi khởi tạo bean
-    private PayOS getPayOSInstance() {
-        return new PayOS(clientId, apiKey, checksumKey);
+    @Value("${payos.client-id}")
+    private String clientId;
+    
+    @Value("${payos.api-key}")
+    private String apiKey;
+    
+    @Value("${payos.checksum-key}")
+    private String checksumKey;
+    
+    private PayOS payOS;
+    
+    private PayOS getPayOS() {
+        if (payOS == null) {
+            payOS = new PayOS(clientId, apiKey, checksumKey);
+        }
+        return payOS;
     }
 
     @Override
@@ -74,48 +82,41 @@ public class PaymentServiceImpl implements PaymentService {
                 throw new PaymentException(ErrorCode.INVALID_INPUT, "Số tiền không đúng với gói quảng cáo");
             }
         }
+        // Kiểm tra nếu là nạp tiền vào ví
+        if ("WALLET".equalsIgnoreCase(requestDto.getType())) {
+            if (requestDto.getAmount() <= 0) {
+                throw new PaymentException(ErrorCode.INVALID_INPUT, "Số tiền nạp phải lớn hơn 0");
+            }
+        }
 
         try {
-            PayOS payOS = getPayOSInstance();
+            // Tạo tham số cho PayOS
+            List<ItemData> items = new ArrayList<>();
+            items.add(ItemData.builder()
+                .name(requestDto.getDescription())
+                .price(requestDto.getAmount().intValue())
+                .quantity(1)
+                .build());
             
-            // Tạo orderCode duy nhất
             long orderCode = System.currentTimeMillis();
             
-            // Tạo item cho đơn hàng
-            ItemData itemData = ItemData.builder()
-                    .name(requestDto.getType() + " " + requestDto.getDuration() + " tháng")
-                    .quantity(1)
-                    .price(requestDto.getAmount().intValue())
-                    .build();
-            
-            // Tạo danh sách items
-            List<ItemData> items = new ArrayList<>();
-            items.add(itemData);
-            
-            // Tạo PaymentData theo yêu cầu của PayOS SDK
             PaymentData paymentData = PaymentData.builder()
-                    .orderCode(orderCode)
-                    .amount(requestDto.getAmount().intValue())
-                    .description(requestDto.getDescription())
-                    .returnUrl(requestDto.getReturnUrl())
-                    .cancelUrl(requestDto.getCancelUrl())
-                    .items(items)
-                    .build();
+                .orderCode(orderCode)
+                .amount(requestDto.getAmount().intValue())
+                .description(requestDto.getDescription())
+                .items(items)
+                .cancelUrl(requestDto.getCancelUrl())
+                .returnUrl(requestDto.getReturnUrl())
+                .build();
             
-            // In thông tin request để kiểm tra
-            System.out.println("PayOS request: " + paymentData);
-            
-            // Gọi API tạo link thanh toán qua PayOS SDK
-            CheckoutResponseData responseData = payOS.createPaymentLink(paymentData);
-            
-            // Kiểm tra phản hồi
-            System.out.println("PayOS response: " + responseData);
+            // Gọi PayOS API để tạo thanh toán
+            CheckoutResponseData responseData = getPayOS().createPaymentLink(paymentData);
             
             if (responseData == null || responseData.getCheckoutUrl() == null) {
-                throw new PaymentException(ErrorCode.INTERNAL_SERVER_ERROR, "Lỗi khi tạo link thanh toán");
+                throw new PaymentException(ErrorCode.PAYMENT_FAILED, "Không thể tạo liên kết thanh toán");
             }
             
-            // Lưu thông tin giao dịch
+            // Lưu thông tin thanh toán vào cơ sở dữ liệu
             User user = null;
             if (requestDto.getUserId() != null) {
                 user = userRepository.findById(requestDto.getUserId().intValue()).orElse(null);
@@ -157,134 +158,116 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
+    public Map<String, Object> checkPaymentStatus(String orderCode) {
+        try {
+            Map<String, Object> result = new HashMap<>();
+            
+            // Kiểm tra trong database trước
+            paymentRepository.findByPayosOrderId(orderCode).ifPresent(payment -> {
+                result.put("status", payment.getStatus());
+                result.put("amount", payment.getAmount());
+                result.put("description", payment.getDescription());
+                result.put("payosOrderId", payment.getPayosOrderId());
+                result.put("createdAt", payment.getCreatedAt().toString());
+                result.put("updatedAt", payment.getUpdatedAt().toString());
+            });
+            
+            if (!result.isEmpty() && "SUCCESS".equals(result.get("status"))) {
+                return result;
+            }
+            
+            // Gọi PayOS API để kiểm tra trạng thái
+            try {
+                // Kiểm tra trạng thái từ PayOS API
+                PaymentLinkData paymentInfo = getPayOS().getPaymentLinkInformation(Long.parseLong(orderCode));
+                if (paymentInfo != null && paymentInfo.getStatus() != null) {
+                    result.put("payosStatus", paymentInfo.getStatus());
+                    
+                    // Cập nhật trạng thái trong database nếu thanh toán thành công từ PayOS
+                    if ("PAID".equals(paymentInfo.getStatus())) {
+                        paymentRepository.findByPayosOrderId(orderCode).ifPresent(payment -> {
+                            payment.setStatus("SUCCESS");
+                            payment.setUpdatedAt(LocalDateTime.now());
+                            paymentRepository.save(payment);
+                            
+                            // Cập nhật thông tin VIP hoặc quảng cáo
+                            processSuccessfulPayment(payment);
+                            
+                            result.put("status", "SUCCESS");
+                        });
+                    }
+                }
+            } catch (Exception e) {
+                System.out.println("Lỗi khi kiểm tra với PayOS API: " + e.getMessage());
+            }
+            
+            return result;
+        } catch (Exception e) {
+            throw new PaymentException(ErrorCode.INTERNAL_SERVER_ERROR, "Lỗi khi kiểm tra trạng thái thanh toán: " + e.getMessage());
+        }
+    }
+
+    @Override
     public void handleWebhook(Map<String, Object> payload) {
         try {
-            System.out.println("PayOS webhook payload: " + payload);
-            
-            // Kiểm tra và log toàn bộ cấu trúc payload để debug
             if (payload == null) {
-                System.out.println("Webhook payload is null");
-                return;
+                throw new PaymentException(ErrorCode.INVALID_INPUT, "Payload rỗng");
             }
             
-            // Log tất cả các key trong payload để xem cấu trúc
-            System.out.println("Webhook payload keys: " + payload.keySet());
+            System.out.println("Received webhook: " + payload);
             
-            // Trong một số trường hợp, data có thể nằm trong trường hợp khác
-            Object dataObj = null;
-            if (payload.containsKey("data")) {
-                dataObj = payload.get("data");
-            } else if (payload.containsKey("result")) {
-                dataObj = payload.get("result");
-            } else if (payload.containsKey("resource")) {
-                dataObj = payload.get("resource");
-            }
+            // Sử dụng mảng để lưu giá trị mà vẫn giữ tham chiếu final
+            final String[] orderCodeRef = new String[1];
+            final String[] statusRef = new String[1];
+            final boolean[] isSuccessRef = new boolean[1];
             
-            if (dataObj == null) {
-                System.out.println("Cannot find data in webhook payload");
-                // In toàn bộ payload để debug
-                for (Map.Entry<String, Object> entry : payload.entrySet()) {
-                    System.out.println(entry.getKey() + ": " + entry.getValue());
+            // Kiểm tra format của callback từ PayOS
+            if (payload.get("orderCode") != null) {
+                // Format webhook từ PayOS trực tiếp
+                orderCodeRef[0] = payload.get("orderCode").toString();
+                Object statusObj = payload.get("status");
+                statusRef[0] = statusObj != null ? statusObj.toString() : null;
+            } else if (payload.get("data") != null && payload.get("data") instanceof Map) {
+                // Format webhook khác (có thể là từ middleware hoặc proxy)
+                @SuppressWarnings("unchecked")
+                Map<String, Object> data = (Map<String, Object>) payload.get("data");
+                
+                if (data.get("orderCode") != null) {
+                    orderCodeRef[0] = data.get("orderCode").toString();
                 }
-                return;
-            }
-            
-            // Chuyển đổi data object thành Map
-            Map<String, Object> data;
-            if (dataObj instanceof Map) {
-                data = (Map<String, Object>) dataObj;
-            } else {
-                System.out.println("Data is not a Map: " + dataObj.getClass().getName());
-                return;
-            }
-            
-            // Log tất cả các key trong data để xem cấu trúc
-            System.out.println("Data keys: " + data.keySet());
-            
-            // Tìm orderCode trong các trường phổ biến
-            final String finalOrderCode;
-            String tempOrderCode = null;
-            if (data.containsKey("orderCode")) {
-                tempOrderCode = String.valueOf(data.get("orderCode"));
-            } else if (data.containsKey("orderId")) {
-                tempOrderCode = String.valueOf(data.get("orderId"));
-            } else if (data.containsKey("order_code")) {
-                tempOrderCode = String.valueOf(data.get("order_code"));
-            }
-            finalOrderCode = tempOrderCode;
-            
-            // Tìm status trong các trường phổ biến
-            String status = null;
-            // Đầu tiên, kiểm tra PayOS code=00 đặc biệt (thành công)
-            boolean isPayOSSuccess = false;
-            if (data.containsKey("code") && "00".equals(String.valueOf(data.get("code")))) {
-                isPayOSSuccess = true;
-                status = "PAID"; // Đặt status mặc định là PAID nếu code=00
-            } else if (data.containsKey("status")) {
-                status = String.valueOf(data.get("status"));
-            } else if (data.containsKey("paymentStatus")) {
-                status = String.valueOf(data.get("paymentStatus"));
-            } else if (data.containsKey("payment_status")) {
-                status = String.valueOf(data.get("payment_status"));
-            } else if (data.containsKey("state")) {
-                status = String.valueOf(data.get("state"));
-            }
-            
-            if (finalOrderCode == null) {
-                System.out.println("Missing orderCode in webhook data");
-                // In toàn bộ data để debug
-                for (Map.Entry<String, Object> entry : data.entrySet()) {
-                    System.out.println(entry.getKey() + ": " + entry.getValue());
+                
+                if (data.get("status") != null) {
+                    statusRef[0] = data.get("status").toString();
                 }
-                return;
             }
             
-            System.out.println("Processing webhook for orderCode: " + finalOrderCode + " with status: " + status + 
-                ", PayOS success: " + isPayOSSuccess);
+            // Đối với PayOS, nếu code=00 hoặc status=SUCCESS thì coi là thành công
+            if (payload.get("code") != null && "00".equals(payload.get("code").toString())) {
+                isSuccessRef[0] = true;
+            }
             
-            // Chỉ xử lý nếu thanh toán thành công (status có thể là PAID, SUCCESS, COMPLETED, v.v. hoặc isPayOSSuccess=true)
-            if (isPayOSSuccess || isSuccessStatus(status)) {
+            System.out.println("Processing webhook for orderCode: " + orderCodeRef[0] + " with status: " + statusRef[0] + 
+                ", PayOS success: " + isSuccessRef[0]);
+            
+            // Chỉ xử lý nếu thanh toán thành công (status có thể là PAID, SUCCESS, COMPLETED)
+            if (isSuccessRef[0] || isSuccessStatus(statusRef[0])) {
                 // Tìm payment qua orderCode
-                Payment payment = paymentRepository.findByPayosOrderId(finalOrderCode)
+                Payment payment = paymentRepository.findByPayosOrderId(orderCodeRef[0])
                     .orElseThrow(() -> new PaymentException(ErrorCode.RESOURCE_NOT_FOUND, 
-                            "Không tìm thấy giao dịch với orderCode: " + finalOrderCode));
+                            "Không tìm thấy giao dịch với orderCode: " + orderCodeRef[0]));
                 
                 // Cập nhật trạng thái giao dịch
                 payment.setStatus("SUCCESS");
                 payment.setUpdatedAt(LocalDateTime.now());
                 paymentRepository.save(payment);
                 
-                System.out.println("Đã cập nhật trạng thái thanh toán thành SUCCESS cho đơn hàng: " + finalOrderCode);
+                System.out.println("Đã cập nhật trạng thái thanh toán thành SUCCESS cho đơn hàng: " + orderCodeRef[0]);
                 
-                // Cập nhật thông tin VIP hoặc quảng cáo
-                if ("VIP".equalsIgnoreCase(payment.getType()) && payment.getUser() != null && payment.getDuration() != null) {
-                    User user = payment.getUser();
-                    LocalDateTime now = LocalDateTime.now();
-                    LocalDateTime currentVip = user.getVipExpireAt() != null && user.getVipExpireAt().isAfter(now) ? 
-                            user.getVipExpireAt() : now;
-                    
-                    user.setVipExpireAt(currentVip.plusMonths(payment.getDuration()));
-                    userRepository.save(user);
-                    
-                    System.out.println("Đã cập nhật gói VIP cho user " + user.getId() + 
-                            " đến " + user.getVipExpireAt());
-                }
-                
-                if ("AD".equalsIgnoreCase(payment.getType()) && payment.getPost() != null && payment.getDuration() != null) {
-                    BlogPost post = payment.getPost();
-                    LocalDateTime now = LocalDateTime.now();
-                    LocalDateTime currentAd = post.getAdExpireAt() != null && post.getAdExpireAt().isAfter(now) ? 
-                            post.getAdExpireAt() : now;
-                    
-                    post.setAdExpireAt(currentAd.plusMonths(payment.getDuration()));
-                    blogPostRepository.save(post);
-                    
-                    System.out.println("Đã cập nhật quảng cáo cho bài viết " + post.getId() + 
-                            " đến " + post.getAdExpireAt());
-                }
+                // Xử lý thanh toán thành công
+                processSuccessfulPayment(payment);
             } else {
-                System.out.println("Trạng thái thanh toán không phải thành công: " + status + 
-                    ", PayOS success: " + isPayOSSuccess);
+                System.out.println("Trạng thái thanh toán không phải thành công: " + statusRef[0] + 
+                    ", PayOS success: " + isSuccessRef[0]);
             }
             
         } catch (Exception e) {
@@ -305,54 +288,94 @@ public class PaymentServiceImpl implements PaymentService {
                status.equals("00"); // Một số cổng thanh toán dùng mã "00" cho thành công
     }
     
-    @Override
-    public Map<String, Object> checkPaymentStatus(String orderCode) {
-        try {
-            PayOS payOS = getPayOSInstance();
-            
-            // Gọi API kiểm tra trạng thái thanh toán
-            PaymentLinkData paymentLinkData = payOS.getPaymentLinkInformation(Long.parseLong(orderCode));
-            
-            if (paymentLinkData == null) {
-                throw new PaymentException(ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy thông tin thanh toán");
-            }
-            
-            // Chuyển đổi dữ liệu sang map để trả về
-            Map<String, Object> resultMap = new HashMap<>();
-            resultMap.put("orderCode", paymentLinkData.getOrderCode());
-            resultMap.put("amount", paymentLinkData.getAmount());
-            resultMap.put("status", paymentLinkData.getStatus());
-            resultMap.put("createdAt", paymentLinkData.getCreatedAt());
-            
-            // Chú ý: Không mọi PayOS response đều có các trường này
-            // Kiểm tra thông tin từ trạng thái bị hủy (nếu có)
-            try {
-                String cancelledAt = (String) getFieldValue(paymentLinkData, "cancelledAt");
-                if (cancelledAt != null) {
-                    resultMap.put("cancelledAt", cancelledAt);
-                    String cancellationReason = (String) getFieldValue(paymentLinkData, "cancellationReason");
-                    resultMap.put("cancellationReason", cancellationReason);
-                }
-            } catch (Exception e) {
-                // Bỏ qua nếu không có thông tin hủy
-            }
-            
-            return resultMap;
-            
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new PaymentException(ErrorCode.INTERNAL_SERVER_ERROR, "Lỗi khi kiểm tra trạng thái thanh toán: " + e.getMessage());
+    // Phương thức xử lý các thanh toán thành công
+    private void processSuccessfulPayment(Payment payment) {
+        if (payment.getUser() == null) {
+            System.out.println("Không tìm thấy thông tin người dùng cho thanh toán: " + payment.getId());
+            return;
         }
-    }
-    
-    // Phương thức hỗ trợ để lấy giá trị từ đối tượng bằng reflection
-    private Object getFieldValue(Object obj, String fieldName) {
-        try {
-            java.lang.reflect.Field field = obj.getClass().getDeclaredField(fieldName);
-            field.setAccessible(true);
-            return field.get(obj);
-        } catch (Exception e) {
-            return null;
+        
+        User user = payment.getUser();
+        
+        // Đảm bảo walletBalance không null
+        if (user.getWalletBalance() == null) {
+            user.setWalletBalance(0L);
+            userRepository.save(user);
+        }
+        
+        // Xử lý theo loại thanh toán
+        if ("WALLET".equalsIgnoreCase(payment.getType())) {
+            // Nạp tiền vào ví
+            System.out.println("Bắt đầu nạp tiền vào ví cho user: " + user.getId() + 
+                ", số dư hiện tại: " + user.getWalletBalance() + 
+                ", số tiền nạp: " + payment.getAmount());
+                
+            WalletTransaction transaction = walletService.depositFunds(user, payment.getAmount(), payment);
+            
+            // Kiểm tra lại số dư sau khi nạp
+            User updatedUser = userRepository.findById(user.getId()).orElse(null);
+            if (updatedUser != null) {
+                System.out.println("Sau khi nạp tiền: User ID " + updatedUser.getId() + 
+                    ", số dư: " + updatedUser.getWalletBalance() +
+                    ", giao dịch ID: " + transaction.getId());
+            } else {
+                System.out.println("Không thể tìm thấy user sau khi nạp tiền");
+            }
+        } 
+        else if ("VIP".equalsIgnoreCase(payment.getType()) && payment.getDuration() != null) {
+            // Kiểm tra số dư ví
+            if (user.getWalletBalance() < payment.getAmount()) {
+                System.out.println("Số dư không đủ để mua gói VIP. Cần: " + payment.getAmount() + 
+                    ", Hiện có: " + user.getWalletBalance());
+                return;
+            }
+            
+            // Trừ tiền từ ví
+            walletService.deductFunds(
+                user, 
+                payment.getAmount(), 
+                WalletTransaction.TransactionType.PURCHASE_VIP, 
+                "Mua gói VIP " + payment.getDuration() + " tháng"
+            );
+            
+            // Cập nhật thời hạn VIP
+            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime currentVip = user.getVipExpireAt() != null && user.getVipExpireAt().isAfter(now) ? 
+                    user.getVipExpireAt() : now;
+            
+            user.setVipExpireAt(currentVip.plusMonths(payment.getDuration()));
+            userRepository.save(user);
+            
+            System.out.println("Đã cập nhật gói VIP cho user " + user.getId() + 
+                    " đến " + user.getVipExpireAt());
+        } 
+        else if ("AD".equalsIgnoreCase(payment.getType()) && payment.getPost() != null && payment.getDuration() != null) {
+            // Kiểm tra số dư ví
+            if (user.getWalletBalance() < payment.getAmount()) {
+                System.out.println("Số dư không đủ để mua gói quảng cáo. Cần: " + payment.getAmount() + 
+                    ", Hiện có: " + user.getWalletBalance());
+                return;
+            }
+            
+            // Trừ tiền từ ví
+            walletService.deductFunds(
+                user, 
+                payment.getAmount(), 
+                WalletTransaction.TransactionType.PURCHASE_AD, 
+                "Mua quảng cáo " + payment.getDuration() + " tháng cho bài viết ID: " + payment.getPost().getId()
+            );
+            
+            // Cập nhật thời hạn quảng cáo
+            BlogPost post = payment.getPost();
+            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime currentAd = post.getAdExpireAt() != null && post.getAdExpireAt().isAfter(now) ? 
+                    post.getAdExpireAt() : now;
+            
+            post.setAdExpireAt(currentAd.plusMonths(payment.getDuration()));
+            blogPostRepository.save(post);
+            
+            System.out.println("Đã cập nhật quảng cáo cho bài viết " + post.getId() + 
+                    " đến " + post.getAdExpireAt());
         }
     }
 } 

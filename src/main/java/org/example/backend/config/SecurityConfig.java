@@ -45,6 +45,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/messages/**").permitAll()
                 .requestMatchers("/api/chatroom/**").permitAll()
                 .requestMatchers("/api/payment/**").permitAll()
+                .requestMatchers("/api/wallet/**").permitAll()
                 .anyRequest().authenticated()
             .and()
             .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)

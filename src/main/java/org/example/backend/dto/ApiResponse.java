@@ -14,6 +14,14 @@ public class ApiResponse<T> {
         response.setResult(result);
         return response;
     }
+    
+    public static <T> ApiResponse<T> error(String message) {
+        ApiResponse<T> response = new ApiResponse<>();
+        response.setCode(400);
+        response.setMessage(message);
+        response.setResult(null);
+        return response;
+    }
 
     public String getMessage() {
         return message;

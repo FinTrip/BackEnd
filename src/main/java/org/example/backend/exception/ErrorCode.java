@@ -89,7 +89,12 @@ public enum ErrorCode {
     CHAT_ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "Chat room not found"),
 
     // Các lỗi liên quan đến báo cáo
-    REPORT_NOT_FOUND(HttpStatus.NOT_FOUND, "Report not found");
+    REPORT_NOT_FOUND(HttpStatus.NOT_FOUND, "Report not found"),
+    
+    // Payment specific error codes
+    PAYMENT_FAILED(HttpStatus.BAD_REQUEST, "Thanh toán thất bại"),
+    PAYMENT_TIMEOUT(HttpStatus.REQUEST_TIMEOUT, "Hết thời gian thanh toán"),
+    INSUFFICIENT_FUNDS(HttpStatus.BAD_REQUEST, "Số dư không đủ để thực hiện giao dịch");
 
     private final HttpStatus status;
     private final String message;

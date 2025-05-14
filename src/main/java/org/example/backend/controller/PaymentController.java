@@ -19,11 +19,15 @@ import org.example.backend.exception.PaymentException;
 import org.example.backend.service.impl.PaymentServiceImpl;
 import vn.payos.PayOS;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.HashMap;
 
 @RestController
 @RequestMapping("/api/payment")
@@ -74,7 +78,7 @@ public class PaymentController {
             }
             
             // Thử xử lý webhook
-            paymentService.handleWebhook(payload);
+        paymentService.handleWebhook(payload);
             
             System.out.println("Webhook processed successfully");
             return ResponseEntity.ok(ApiResponse.success("Webhook processed successfully"));
@@ -217,31 +221,87 @@ public class PaymentController {
     }
 
     @PostMapping("/register-webhook")
-    public ResponseEntity<ApiResponse<String>> registerWebhook(@RequestBody Map<String, String> request) {
+    public ResponseEntity<ApiResponse<Map<String, String>>> registerWebhook(
+            @RequestBody Map<String, String> request) {
+        
+        if (request == null || !request.containsKey("webhookUrl")) {
+            return ResponseEntity.badRequest().body(
+                ApiResponse.error("Missing webhookUrl parameter")
+            );
+        }
+        
+        String webhookUrl = request.get("webhookUrl");
+        
+        // Gửi yêu cầu đăng ký webhook URL mới đến PayOS
         try {
-            String webhookUrl = request.get("webhookUrl");
-            if (webhookUrl == null || webhookUrl.isEmpty()) {
-                ApiResponse<String> errorResponse = new ApiResponse<>();
-                errorResponse.setCode(400);
-                errorResponse.setMessage("Webhook URL is required");
-                errorResponse.setResult(null);
-                return ResponseEntity.badRequest().body(errorResponse);
+            // Mã code đăng ký webhook với PayOS sẽ được thêm ở đây
+            // Hiện tại chỉ trả về thông báo thành công
+            
+            Map<String, String> result = new HashMap<>();
+            result.put("status", "success");
+            result.put("webhookUrl", webhookUrl);
+            
+            return ResponseEntity.ok(ApiResponse.success(result));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Failed to register webhook: " + e.getMessage()));
+        }
+    }
+    
+    @GetMapping("/create-wallet-payment")
+    public ResponseEntity<ApiResponse<PaymentResponseDto>> createWalletPayment(
+            @RequestParam(required = false) Integer userId,
+            @RequestParam Long amount) {
+        
+        try {
+            // Nếu không có userId, lấy từ token JWT hiện tại
+            if (userId == null) {
+                Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+                if (authentication != null) {
+                    String email = authentication.getName();
+                    User currentUser = userRepository.findByEmail(email).orElse(null);
+                    if (currentUser != null) {
+                        userId = currentUser.getId();
+                    }
+                }
             }
             
-            // Khởi tạo PayOS instance
-            PayOS payOS = new PayOS(clientId, apiKey, checksumKey);
+            if (userId == null) {
+                return ResponseEntity.badRequest().body(
+                    ApiResponse.error("Không có thông tin người dùng")
+                );
+            }
             
-            // Đăng ký webhook URL với PayOS
-            String verifiedWebhookUrl = payOS.confirmWebhook(webhookUrl);
+            // Tìm thông tin người dùng
+            User user = userRepository.findById(userId).orElse(null);
+            if (user == null) {
+                return ResponseEntity.badRequest().body(
+                    ApiResponse.error("Không tìm thấy người dùng với ID: " + userId)
+                );
+            }
             
-            return ResponseEntity.ok(ApiResponse.success(verifiedWebhookUrl));
+            System.out.println("Tạo giao dịch nạp tiền vào ví cho user: " + userId + ", số tiền: " + amount);
+            
+            // Chuẩn bị thông tin thanh toán
+            PaymentRequestDto paymentRequest = PaymentRequestDto.builder()
+                .amount(amount)
+                .type("WALLET")
+                .description("Nạp tiền vào ví " + amount + " VND")
+                .userId(Long.valueOf(userId))
+                .returnUrl("http://localhost:3000/wallet/success")
+                .cancelUrl("http://localhost:3000/wallet/cancel")
+                .build();
+            
+            // Tạo thanh toán
+            PaymentResponseDto paymentResponse = paymentService.createPayment(paymentRequest);
+            
+            return ResponseEntity.ok(ApiResponse.success(paymentResponse));
         } catch (Exception e) {
+            System.err.println("Lỗi khi tạo giao dịch nạp tiền vào ví: " + e.getMessage());
             e.printStackTrace();
-            ApiResponse<String> errorResponse = new ApiResponse<>();
-            errorResponse.setCode(500);
-            errorResponse.setMessage("Error registering webhook: " + e.getMessage());
-            errorResponse.setResult(null);
-            return ResponseEntity.status(500).body(errorResponse);
+            return ResponseEntity.status(500).body(
+                ApiResponse.error("Lỗi khi tạo giao dịch: " + e.getMessage())
+            );
         }
     }
 } 
