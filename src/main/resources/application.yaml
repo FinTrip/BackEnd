@@ -5,6 +5,7 @@ server:
 payos:
   client-id: c1d52240-f7ee-4093-acf6-df9f0a994a1f
   api-key: 384f9577-4779-467b-ac50-9b9d3d59d7c1
+  checksum-key: 7d3b365070f2c6e1bcc5ff2950f6bc8457a038c74afdf205b3bd415132b54237
 spring:
   datasource:
     url: jdbc:mysql://localhost:3306/FinTrip?useSSL=false&serverTimezone=UTC
