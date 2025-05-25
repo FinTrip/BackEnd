@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import org.example.backend.dto.PaymentRequestDto;
 import org.example.backend.dto.PaymentResponseDto;
 import org.example.backend.dto.ApiResponse;
+import org.example.backend.dto.PaymentHistoryDto;
+import org.example.backend.dto.AdminPaymentHistoryDto;
 import org.example.backend.service.PaymentService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -29,6 +31,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.HashMap;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/payment")
@@ -290,7 +293,7 @@ public class PaymentController {
     }
 
     @GetMapping("/history")
-    public ResponseEntity<ApiResponse<List<Payment>>> getPaymentHistory() {
+    public ResponseEntity<ApiResponse<List<PaymentHistoryDto>>> getPaymentHistory() {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             if (authentication == null) {
@@ -304,8 +307,11 @@ public class PaymentController {
                 .orElseThrow(() -> new RuntimeException("User not found"));
             
             List<Payment> payments = paymentRepository.findByUserOrderByCreatedAtDesc(currentUser);
+            List<PaymentHistoryDto> paymentDtos = payments.stream()
+                .map(PaymentHistoryDto::fromEntity)
+                .collect(Collectors.toList());
             
-            return ResponseEntity.ok(ApiResponse.success(payments));
+            return ResponseEntity.ok(ApiResponse.success(paymentDtos));
         } catch (Exception e) {
             return ResponseEntity.status(500).body(
                 ApiResponse.error("Error getting payment history: " + e.getMessage())
@@ -314,7 +320,7 @@ public class PaymentController {
     }
 
     @GetMapping("/history/all")
-    public ResponseEntity<ApiResponse<List<Payment>>> getAllPaymentHistory() {
+    public ResponseEntity<ApiResponse<List<AdminPaymentHistoryDto>>> getAllPaymentHistory() {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             if (authentication == null) {
@@ -336,8 +342,11 @@ public class PaymentController {
             }
             
             List<Payment> payments = paymentRepository.findAllByOrderByCreatedAtDesc();
+            List<AdminPaymentHistoryDto> paymentDtos = payments.stream()
+                .map(AdminPaymentHistoryDto::fromEntity)
+                .collect(Collectors.toList());
             
-            return ResponseEntity.ok(ApiResponse.success(payments));
+            return ResponseEntity.ok(ApiResponse.success(paymentDtos));
         } catch (Exception e) {
             return ResponseEntity.status(500).body(
                 ApiResponse.error("Error getting all payment history: " + e.getMessage())
