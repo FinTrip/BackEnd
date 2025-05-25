@@ -44,6 +44,7 @@ public class CommentController {
             response.put("id", comment.getId());
             response.put("content", comment.getContent());
             response.put("authorName", comment.getUser().getFullName());
+            response.put("authorId", comment.getUser().getId());
             response.put("createdAt", comment.getCreatedAt());
             
             return ResponseEntity.ok(ApiResponse.success(response));
@@ -71,6 +72,7 @@ public class CommentController {
             response.put("id", reply.getId());
             response.put("content", reply.getContent());
             response.put("authorName", reply.getUser().getFullName());
+            response.put("authorId", reply.getUser().getId());
             response.put("createdAt", reply.getCreatedAt());
             
             return ResponseEntity.ok(ApiResponse.success(response));
@@ -93,6 +95,7 @@ public class CommentController {
                     commentMap.put("id", comment.getId());
                     commentMap.put("content", comment.getContent());
                     commentMap.put("authorName", comment.getUser().getFullName());
+                    commentMap.put("authorId", comment.getUser().getId());
                     commentMap.put("createdAt", comment.getCreatedAt());
                     return commentMap;
                 })
@@ -116,6 +119,7 @@ public class CommentController {
                     replyMap.put("id", reply.getId());
                     replyMap.put("content", reply.getContent());
                     replyMap.put("authorName", reply.getUser().getFullName());
+                    replyMap.put("authorId", reply.getUser().getId());
                     replyMap.put("createdAt", reply.getCreatedAt());
                     return replyMap;
                 })

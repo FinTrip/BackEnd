@@ -34,7 +34,7 @@ public class BlogController {
     private final BlogService blogService;
     private final UploadImageFile uploadImageFile;
 
-    @PostMapping(value = "/create", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+        @PostMapping(value = "/create", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<Map<String, Object>>> createPost(
             HttpServletRequest request,
             @RequestParam("title") String title,

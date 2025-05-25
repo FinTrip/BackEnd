@@ -9,6 +9,6 @@ public class CommentResponse {
     private Integer id;
     private Long postId ;
     private String content ;
-    private String authorId ;
+    private Integer authorId ;
     private LocalDateTime createdAt  ;
 }
