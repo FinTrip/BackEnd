@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.HashMap;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/payment")
@@ -68,7 +69,6 @@ public class PaymentController {
         try {
             System.out.println("Webhook received with payload: " + payload);
             
-            // Kiểm tra dữ liệu webhook
             if (payload == null) {
                 System.out.println("Webhook payload is null");
                 ApiResponse<String> errorResponse = new ApiResponse<>();
@@ -77,8 +77,7 @@ public class PaymentController {
                 return ResponseEntity.ok(errorResponse);
             }
             
-            // Thử xử lý webhook
-        paymentService.handleWebhook(payload);
+            paymentService.handleWebhook(payload);
             
             System.out.println("Webhook processed successfully");
             return ResponseEntity.ok(ApiResponse.success("Webhook processed successfully"));
@@ -86,8 +85,6 @@ public class PaymentController {
             e.printStackTrace();
             System.err.println("Error processing webhook: " + e.getMessage());
             
-            // Trả về 200 OK để PayOS biết chúng ta đã nhận được webhook
-            // Nếu trả về 4xx hoặc 5xx, PayOS sẽ thử lại gửi webhook
             ApiResponse<String> errorResponse = new ApiResponse<>();
             errorResponse.setCode(500);
             errorResponse.setMessage("Error processing webhook: " + e.getMessage());
@@ -121,7 +118,6 @@ public class PaymentController {
     @GetMapping("/check-status/{orderCode}")
     public ResponseEntity<ApiResponse<Map<String, Object>>> checkPayOSStatus(@PathVariable String orderCode) {
         try {
-            // Gọi phương thức kiểm tra trạng thái từ PaymentServiceImpl
             Map<String, Object> statusData = paymentServiceImpl.checkPaymentStatus(orderCode);
             return ResponseEntity.ok(ApiResponse.success(statusData));
         } catch (Exception e) {
@@ -140,10 +136,8 @@ public class PaymentController {
         
         String userEmail = (String) request.getAttribute("userEmail");
         
-        // Tạo mã giao dịch
         String transactionId = UUID.randomUUID().toString();
         
-        // Lưu thông tin giao dịch
         Payment payment = Payment.builder()
                 .amount(requestDto.getAmount())
                 .description(requestDto.getDescription())
@@ -156,7 +150,6 @@ public class PaymentController {
                 .duration(requestDto.getDuration())
                 .build();
         
-        // Thêm thông tin người dùng nếu có
         if (userEmail != null) {
             userRepository.findByEmail(userEmail).ifPresent(user -> {
                 payment.setUser(user);
@@ -164,16 +157,13 @@ public class PaymentController {
             });
         }
         
-        // Thêm thông tin bài viết nếu có
         if (requestDto.getPostId() != null) {
             blogPostRepository.findById(requestDto.getPostId().intValue())
                     .ifPresent(payment::setPost);
         }
         
-        // Lưu giao dịch
         paymentRepository.save(payment);
         
-        // Tạo URL thanh toán giả lập
         String simulatedPaymentUrl = "/payment-mock?id=" + transactionId;
         
         return ResponseEntity.ok(ApiResponse.success(
@@ -191,12 +181,10 @@ public class PaymentController {
                         ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy giao dịch"
                 ));
         
-        // Cập nhật trạng thái thanh toán
         payment.setStatus("SUCCESS");
         payment.setUpdatedAt(LocalDateTime.now());
         paymentRepository.save(payment);
         
-        // Cập nhật thông tin VIP hoặc AD
         if ("VIP".equalsIgnoreCase(payment.getType()) && payment.getUser() != null) {
             User user = payment.getUser();
             LocalDateTime now = LocalDateTime.now();
@@ -232,11 +220,7 @@ public class PaymentController {
         
         String webhookUrl = request.get("webhookUrl");
         
-        // Gửi yêu cầu đăng ký webhook URL mới đến PayOS
         try {
-            // Mã code đăng ký webhook với PayOS sẽ được thêm ở đây
-            // Hiện tại chỉ trả về thông báo thành công
-            
             Map<String, String> result = new HashMap<>();
             result.put("status", "success");
             result.put("webhookUrl", webhookUrl);
@@ -301,6 +285,62 @@ public class PaymentController {
             e.printStackTrace();
             return ResponseEntity.status(500).body(
                 ApiResponse.error("Lỗi khi tạo giao dịch: " + e.getMessage())
+            );
+        }
+    }
+
+    @GetMapping("/history")
+    public ResponseEntity<ApiResponse<List<Payment>>> getPaymentHistory() {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null) {
+                return ResponseEntity.status(401).body(
+                    ApiResponse.error("Unauthorized")
+                );
+            }
+            
+            String email = authentication.getName();
+            User currentUser = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+            
+            List<Payment> payments = paymentRepository.findByUserOrderByCreatedAtDesc(currentUser);
+            
+            return ResponseEntity.ok(ApiResponse.success(payments));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(
+                ApiResponse.error("Error getting payment history: " + e.getMessage())
+            );
+        }
+    }
+
+    @GetMapping("/history/all")
+    public ResponseEntity<ApiResponse<List<Payment>>> getAllPaymentHistory() {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null) {
+                return ResponseEntity.status(401).body(
+                    ApiResponse.error("Unauthorized")
+                );
+            }
+            
+            String email = authentication.getName();
+            User currentUser = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+                
+            boolean isAdmin = currentUser.getRole() != null && 
+                    "ADMIN".equalsIgnoreCase(currentUser.getRole().getRoleName());
+            if (!isAdmin) {
+                return ResponseEntity.status(403).body(
+                    ApiResponse.error("Chỉ ADMIN mới có quyền xem tất cả lịch sử giao dịch")
+                );
+            }
+            
+            List<Payment> payments = paymentRepository.findAllByOrderByCreatedAtDesc();
+            
+            return ResponseEntity.ok(ApiResponse.success(payments));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(
+                ApiResponse.error("Error getting all payment history: " + e.getMessage())
             );
         }
     }

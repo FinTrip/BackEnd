@@ -2,19 +2,18 @@ package org.example.backend.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.example.backend.dto.ApiResponse;
-import org.example.backend.dto.WalletTransactionDto;
 import org.example.backend.entity.User;
-import org.example.backend.entity.WalletTransaction;
 import org.example.backend.service.WalletService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.example.backend.repository.UserRepository;
+import org.example.backend.repository.PaymentRepository;
+import org.example.backend.entity.Payment;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/wallet")
@@ -23,6 +22,7 @@ public class WalletController {
 
     private final WalletService walletService;
     private final UserRepository userRepository;
+    private final PaymentRepository paymentRepository;
 
     /**
      * Lấy thông tin người dùng hiện tại từ token JWT
@@ -40,15 +40,6 @@ public class WalletController {
         
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy thông tin người dùng với email: " + email));
-    }
-
-    /**
-     * Kiểm tra xem người dùng hiện tại có phải là admin không
-     */
-    private boolean isCurrentUserAdmin() {
-        User currentUser = getCurrentUser();
-        return currentUser.getRole() != null && 
-               "ADMIN".equalsIgnoreCase(currentUser.getRole().getRoleName());
     }
 
     /**
@@ -78,20 +69,15 @@ public class WalletController {
     }
 
     /**
-     * Lấy lịch sử giao dịch của người dùng hiện tại với thông tin chi tiết
+     * Lấy lịch sử giao dịch của người dùng hiện tại
      */
     @GetMapping("/transactions")
-    public ResponseEntity<ApiResponse<List<WalletTransactionDto>>> getTransactionHistory() {
+    public ResponseEntity<ApiResponse<List<Payment>>> getTransactionHistory() {
         try {
             User currentUser = getCurrentUser();
-            List<WalletTransaction> transactions = walletService.getTransactionHistory(currentUser.getId());
-            List<WalletTransactionDto> transactionDtos = transactions.stream()
-                    .map(WalletTransactionDto::fromEntity)
-                    .collect(Collectors.toList());
-            return ResponseEntity.ok(ApiResponse.success(transactionDtos));
+            List<Payment> payments = paymentRepository.findByUserOrderByCreatedAtDesc(currentUser);
+            return ResponseEntity.ok(ApiResponse.success(payments));
         } catch (Exception e) {
-            System.err.println("Lỗi khi lấy lịch sử giao dịch: " + e.getMessage());
-            e.printStackTrace();
             return ResponseEntity.status(500).body(
                 ApiResponse.error("Lỗi khi lấy lịch sử giao dịch: " + e.getMessage())
             );
@@ -115,34 +101,6 @@ public class WalletController {
         );
         
         return ResponseEntity.ok(ApiResponse.success(result));
-    }
-    
-    /**
-     * Admin endpoint - Lấy tất cả giao dịch trong hệ thống
-     */
-    @GetMapping("/admin/transactions")
-    public ResponseEntity<ApiResponse<List<WalletTransactionDto>>> getAllTransactions() {
-        try {
-            // Kiểm tra quyền admin
-            if (!isCurrentUserAdmin()) {
-                return ResponseEntity.status(403).body(
-                    ApiResponse.error("Không có quyền truy cập. Chỉ admin mới có thể xem tất cả giao dịch.")
-                );
-            }
-            
-            List<WalletTransaction> transactions = walletService.getAllTransactions();
-            List<WalletTransactionDto> transactionDtos = transactions.stream()
-                    .map(WalletTransactionDto::fromEntity)
-                    .collect(Collectors.toList());
-            
-            return ResponseEntity.ok(ApiResponse.success(transactionDtos));
-        } catch (Exception e) {
-            System.err.println("Lỗi khi lấy tất cả giao dịch: " + e.getMessage());
-            e.printStackTrace();
-            return ResponseEntity.status(500).body(
-                ApiResponse.error("Lỗi khi lấy tất cả giao dịch: " + e.getMessage())
-            );
-        }
     }
     
     /**
@@ -179,9 +137,8 @@ public class WalletController {
     }
     
     @GetMapping("/transactions/{userId}")
-    public ResponseEntity<ApiResponse<List<WalletTransactionDto>>> getTransactionHistoryById(@PathVariable Integer userId) {
+    public ResponseEntity<ApiResponse<List<Payment>>> getTransactionHistoryById(@PathVariable Integer userId) {
         try {
-            // Kiểm tra quyền - tương tự như trên
             User currentUser = getCurrentUser();
             if (!currentUser.getId().equals(userId)) {
                 boolean isAdmin = currentUser.getRole() != null && 
@@ -193,14 +150,9 @@ public class WalletController {
                 }
             }
             
-            List<WalletTransaction> transactions = walletService.getTransactionHistory(userId);
-            List<WalletTransactionDto> transactionDtos = transactions.stream()
-                    .map(WalletTransactionDto::fromEntity)
-                    .collect(Collectors.toList());
-            return ResponseEntity.ok(ApiResponse.success(transactionDtos));
+            List<Payment> payments = paymentRepository.findByUserIdOrderByCreatedAtDesc(userId);
+            return ResponseEntity.ok(ApiResponse.success(payments));
         } catch (Exception e) {
-            System.err.println("Lỗi khi lấy lịch sử giao dịch theo ID: " + e.getMessage());
-            e.printStackTrace();
             return ResponseEntity.status(500).body(
                 ApiResponse.error("Lỗi khi lấy lịch sử giao dịch: " + e.getMessage())
             );

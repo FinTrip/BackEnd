@@ -39,10 +39,4 @@ public interface WalletService {
      * @return list of transactions
      */
     List<WalletTransaction> getTransactionHistory(Integer userId);
-    
-    /**
-     * Get all transactions in the system (for admin use)
-     * @return list of all transactions
-     */
-    List<WalletTransaction> getAllTransactions();
 } 
