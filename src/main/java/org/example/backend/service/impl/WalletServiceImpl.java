@@ -104,9 +104,4 @@ public class WalletServiceImpl implements WalletService {
     public List<WalletTransaction> getTransactionHistory(Integer userId) {
         return walletTransactionRepository.findByUserIdOrderByCreatedAtDesc(userId);
     }
-    
-    @Override
-    public List<WalletTransaction> getAllTransactions() {
-        return walletTransactionRepository.findAllByOrderByCreatedAtDesc();
-    }
 } 
