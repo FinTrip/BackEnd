@@ -45,6 +45,9 @@ public class User {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @Column(name = "wallet_balance", nullable = false)
+    private Long walletBalance = 0L;
+
     @ManyToOne
     @JoinColumn(name = "role_id")
     @JsonManagedReference
@@ -68,6 +71,8 @@ public class User {
     @OneToMany(mappedBy = "receiver")
     private List<Friendship> receivedFriendRequests;
 
+    private java.time.LocalDateTime vipExpireAt;
+
     public enum UserStatus {
         active, inactive, banned
     }
@@ -76,11 +81,17 @@ public class User {
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
+        if (walletBalance == null) {
+            walletBalance = 0L;
+        }
     }
 
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
+        if (walletBalance == null) {
+            walletBalance = 0L;
+        }
     }
     
     // Phương thức để lấy danh sách bạn bè đã được chấp nhận

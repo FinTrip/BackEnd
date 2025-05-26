@@ -34,7 +34,7 @@ public class BlogController {
     private final BlogService blogService;
     private final UploadImageFile uploadImageFile;
 
-    @PostMapping(value = "/create", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+        @PostMapping(value = "/create", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<Map<String, Object>>> createPost(
             HttpServletRequest request,
             @RequestParam("title") String title,
@@ -389,6 +389,7 @@ public class BlogController {
             @PathVariable Integer postId,
             @RequestParam("title") String title,
             @RequestParam("content") String content,
+            @RequestParam(value = "images", required = false) String images,
             @RequestParam(value = "files", required = false) MultipartFile[] files,
             @RequestParam(value = "travelPlanId", required = false) Integer travelPlanId) {
         try {
@@ -401,6 +402,9 @@ public class BlogController {
             blogPostRequest.setTitle(title);
             blogPostRequest.setContent(content);
             blogPostRequest.setTravelPlanId(travelPlanId);
+
+            blogPostRequest.setImages(images);
+
 
             // Convert MultipartFile[] to List<MultipartFile> và loại bỏ các file null hoặc empty
             List<MultipartFile> fileList = files != null ? Arrays.stream(files)

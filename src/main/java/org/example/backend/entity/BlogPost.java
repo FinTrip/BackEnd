@@ -41,6 +41,9 @@ public class BlogPost {
     @Column(name = "images", columnDefinition = "TEXT")
     private String images;
 
+    @Column(name = "ad_expire_at")
+    private java.time.LocalDateTime adExpireAt;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
