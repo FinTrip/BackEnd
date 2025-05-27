@@ -38,6 +38,9 @@ public class Itinerary {
     @Column(name = "food_image")
     private String foodImage;
 
+    @Column(name = "food_time")
+    private String food_time;
+
     @Column(name = "place_title")
     private String placeTitle;
 
@@ -56,27 +59,13 @@ public class Itinerary {
     @Column(name = "place_link")
     private String placeLink;
 
-    @Column(name = "hotel_name")
-    private String hotelName;
-
-    @Column(name = "hotel_link")
-    private String hotelLink;
-
-    @Column(name = "hotel_description", columnDefinition = "TEXT")
-    private String hotelDescription;
-
-    @Column(name = "hotel_price")
-    private String hotelPrice;
-
-    @Column(name = "hotel_class")
-    private String hotelClass;
-
-    @Column(name = "hotel_img_origin")
-    private String hotelImgOrigin;
-
-    @Column(name = "hotel_location_rating")
-    private Float hotelLocationRating;
+    @Column(name = "place_time")
+    private String place_time;
 
     @Column(name = "`order`")
     private Integer order;
+
+    @ManyToOne
+    @JoinColumn(name = "schedule_id")
+    private Schedule schedule;
 }
